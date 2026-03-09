@@ -467,7 +467,7 @@ function ChapterEditor({ chapter, onUpdate, onWordCount }) {
   return (
     <>
       <FormatToolbar editor={editor} />
-      <div className="editor-wrap" onClick={() => editor && editor.commands.focus("end")}>
+      <div className="editor-wrap" onClick={(e) => { if (e.target === e.currentTarget) editor && editor.commands.focus("end"); }}>
         <div className="editor-column">
           <EditorContent editor={editor} />
         </div>
