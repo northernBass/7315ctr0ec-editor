@@ -377,7 +377,7 @@ async function exportDocx(chapters) {
 
 // ─── WORD COUNT GRAPH ─────────────────────────────────────────────────────────
 function WordCountGraph({ data, todayCount, goal }) {
-  const maxCount = Math.max(...data.map((d) => d.count), goal);
+  const maxCount = Math.max(...data.map((d) => d.count), todayCount, goal);
   const goalPct = Math.min((goal / maxCount) * 100, 100);
   return (
     <div className="wc-graph-section">
@@ -397,9 +397,10 @@ function WordCountGraph({ data, todayCount, goal }) {
       <div className="bar-chart" style={{ "--goal-pct": goalPct }}>
         {data.map((d, i) => {
           const isToday = i === data.length - 1;
-          const height = d.count === 0 ? 4 : Math.max((d.count / maxCount) * 100, 6);
-          const cls = isToday ? "bar bar-today" : d.count === 0 ? "bar bar-empty" : d.count >= goal ? "bar bar-goal" : "bar bar-partial";
-          return <div key={d.date} className={cls} style={{ height: `${height}%` }} data-count={d.count} title={`${d.label}: ${d.count}`} />;
+          const count = isToday ? todayCount : d.count;
+          const height = count === 0 ? 4 : Math.max((count / maxCount) * 100, 6);
+          const cls = isToday ? "bar bar-today" : count === 0 ? "bar bar-empty" : count >= goal ? "bar bar-goal" : "bar bar-partial";
+          return <div key={d.date} className={cls} style={{ height: `${height}%` }} data-count={count} title={`${d.label}: ${count}`} />;
         })}
       </div>
     </div>
@@ -707,7 +708,7 @@ export default function App() {
           </div>
 
           <div className="sidebar-scroll">
-            <WordCountGraph data={wordCounts} todayCount={todayCount} goal={DAILY_GOAL} />
+            <WordCountGraph data={wordCounts} todayCount={totalWords} goal={DAILY_GOAL} />
 
             <div className="section-header" onClick={() => setChaptersOpen((v) => !v)}>
               <div className="section-header-left">
