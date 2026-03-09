@@ -443,10 +443,15 @@ function ChapterEditor({ chapter, onUpdate, onWordCount }) {
   const editor = useEditor({
     extensions: [StarterKit],
     content: chapter.content,
+    autofocus: "end",
+    onCreate: ({ editor }) => {
+      const text = editor.getText();
+      onWordCount(text.trim() === "" ? 0 : text.trim().split(/\s+/).length);
+      editor.commands.focus("end");
+    },
     onUpdate: ({ editor }) => {
       const html = editor.getHTML();
       onUpdate(chapter.id, html);
-      // word count from plain text
       const text = editor.getText();
       const wc = text.trim() === "" ? 0 : text.trim().split(/\s+/).length;
       onWordCount(wc);
@@ -459,22 +464,10 @@ function ChapterEditor({ chapter, onUpdate, onWordCount }) {
     },
   }, [chapter.id]); // re-init when chapter changes
 
-  // sync content when switching chapters, then focus
-  useEffect(() => {
-    if (editor && editor.getHTML() !== chapter.content) {
-      editor.commands.setContent(chapter.content, false);
-    }
-    if (editor) {
-      const text = editor.getText();
-      onWordCount(text.trim() === "" ? 0 : text.trim().split(/\s+/).length);
-      setTimeout(() => editor.commands.focus("end"), 50);
-    }
-  }, [chapter.id]);
-
   return (
     <>
       <FormatToolbar editor={editor} />
-      <div className="editor-wrap" onClick={() => editor && !editor.isFocused && editor.commands.focus("end")}>
+      <div className="editor-wrap" onClick={() => editor && editor.commands.focus("end")}>
         <div className="editor-column">
           <EditorContent editor={editor} />
         </div>
