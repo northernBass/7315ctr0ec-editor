@@ -13,8 +13,7 @@
     "react-dom": "^18",
     "@tiptap/react": "^2.4.0",
     "@tiptap/starter-kit": "^2.4.0",
-    "docx": "^8.5.0",
-    "html-to-docx": "^1.8.0"
+    "html-docx-js": "^0.3.1"
   },
   "devDependencies": {
     "@types/node": "^20",
