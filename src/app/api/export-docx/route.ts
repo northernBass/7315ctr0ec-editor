@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
     margins: { top: 1440, right: 1440, bottom: 1440, left: 1440 },
   });
 
-  return new NextResponse(buffer as Buffer, {
+  return new NextResponse(buffer as unknown as BodyInit, {
     headers: {
       "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       "Content-Disposition": 'attachment; filename="manuscript.docx"',
