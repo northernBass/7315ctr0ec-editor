@@ -13,7 +13,9 @@
     "react-dom": "^18",
     "@tiptap/react": "^2.4.0",
     "@tiptap/starter-kit": "^2.4.0",
-    "docx": "^9.0.0"
+    "docx": "^9.0.0",
+    "@supabase/supabase-js": "^2.43.0",
+    "jose": "^5.3.0"
   },
   "devDependencies": {
     "@types/node": "^20",
