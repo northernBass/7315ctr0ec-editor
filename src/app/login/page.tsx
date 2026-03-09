@@ -81,13 +81,11 @@ export default function LoginPage() {
         <div className="login-box">
           <div className="login-hex">
             <svg width={52} height={52} viewBox="0 0 24 24" fill="none" stroke="#4fc3f7" strokeWidth="1">
-              <polygon points="12 2 22 7 22 17 12 22 2 17 2 7" />
+              <polygon points="12 2 22 22 2 22" />
             </svg>
           </div>
-          <div style={{ textAlign: "center", display: "flex", flexDirection: "column", gap: 6 }}>
-            <div className="login-title">7315-CTR0 EC</div>
-            <div className="login-sub">Manuscript System — Access Required</div>
-          </div>
+          <div className="login-title">7315-CTR0 EC</div>
+          <div className="login-sub">Manuscript System — Access Required</div>
           <input
             className="login-field"
             type="password"
