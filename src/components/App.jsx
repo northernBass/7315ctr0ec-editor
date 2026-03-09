@@ -2,7 +2,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import { Markdown } from "tiptap-markdown";
 
 const INITIAL_CHAPTERS = [
   { id: 1, title: "Chapter 1", content: "<p>Begin writing here...</p>" },
