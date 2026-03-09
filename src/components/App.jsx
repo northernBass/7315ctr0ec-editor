@@ -206,7 +206,7 @@ const css = `
   .editor-column { width: 100%; max-width: 680px; }
 
   /* TipTap editor styles */
-  .tiptap-editor { outline: none; }
+  .tiptap-editor { outline: none; caret-color: var(--blue-core); }
   .tiptap-editor p { font-family: var(--font-body); font-size: 16px; font-weight: 300; line-height: 1.85; color: var(--text-primary); letter-spacing: 0.01em; margin-bottom: 1em; }
   .tiptap-editor p.is-editor-empty:first-child::before { content: attr(data-placeholder); color: var(--text-dim); pointer-events: none; float: left; height: 0; }
   .tiptap-editor h1 { font-family: var(--font-ui); font-size: 26px; font-weight: 700; color: var(--text-primary); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 0.6em; margin-top: 1.4em; border-bottom: 1px solid var(--border-dim); padding-bottom: 8px; }
