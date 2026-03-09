@@ -2,6 +2,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, PageBreak } from "docx";
 
 const _initCharId = Date.now();
 const _initCh1Id = _initCharId + 1;
@@ -296,20 +297,75 @@ function exportMarkdown(chapters) {
   downloadFile(md, "manuscript.md", "text/markdown");
 }
 
-async function exportDocx(chapters) {
-  const html = chapters.map(ch =>
-    `<h1>${ch.title}</h1>${ch.content || ""}`
-  ).join('<p style="page-break-after:always"></p>');
+function htmlToDocxParagraphs(html) {
+  // Parse HTML nodes into docx Paragraph objects
+  const div = document.createElement("div");
+  div.innerHTML = html;
+  const paragraphs = [];
 
-  try {
-    const res = await fetch("/api/export-docx", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ html }),
+  function nodeToRuns(node) {
+    const runs = [];
+    node.childNodes.forEach((child) => {
+      if (child.nodeType === 3) {
+        // plain text
+        if (child.textContent) runs.push(new TextRun({ text: child.textContent }));
+      } else if (child.nodeType === 1) {
+        const tag = child.tagName.toLowerCase();
+        const inner = child.textContent || "";
+        if (tag === "strong" || tag === "b") runs.push(new TextRun({ text: inner, bold: true }));
+        else if (tag === "em" || tag === "i") runs.push(new TextRun({ text: inner, italics: true }));
+        else if (tag === "s" || tag === "del") runs.push(new TextRun({ text: inner, strike: true }));
+        else if (tag === "code") runs.push(new TextRun({ text: inner, font: "Courier New" }));
+        else runs.push(...nodeToRuns(child));
+      }
     });
-    if (!res.ok) throw new Error("Export failed");
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
+    return runs;
+  }
+
+  div.childNodes.forEach((node) => {
+    if (node.nodeType !== 1) return;
+    const tag = node.tagName.toLowerCase();
+    if (tag === "h1") {
+      paragraphs.push(new Paragraph({ text: node.textContent, heading: HeadingLevel.HEADING_1 }));
+    } else if (tag === "h2") {
+      paragraphs.push(new Paragraph({ text: node.textContent, heading: HeadingLevel.HEADING_2 }));
+    } else if (tag === "h3") {
+      paragraphs.push(new Paragraph({ text: node.textContent, heading: HeadingLevel.HEADING_3 }));
+    } else if (tag === "blockquote") {
+      paragraphs.push(new Paragraph({ children: [new TextRun({ text: node.textContent, italics: true })], indent: { left: 720 } }));
+    } else if (tag === "p") {
+      const runs = nodeToRuns(node);
+      if (runs.length > 0) paragraphs.push(new Paragraph({ children: runs }));
+      else paragraphs.push(new Paragraph({}));
+    }
+  });
+
+  return paragraphs;
+}
+
+async function exportDocx(chapters) {
+  try {
+    const sections = [];
+    chapters.forEach((ch, i) => {
+      const paras = htmlToDocxParagraphs(ch.content || "");
+      sections.push(
+        new Paragraph({ text: ch.title, heading: HeadingLevel.TITLE }),
+        ...paras,
+      );
+      if (i < chapters.length - 1) sections.push(new Paragraph({ children: [new PageBreak()] }));
+    });
+
+    const doc = new Document({
+      sections: [{ children: sections }],
+      styles: {
+        default: {
+          document: { run: { font: "Georgia", size: 24 } },
+        },
+      },
+    });
+
+    const buffer = await Packer.toBlob(doc);
+    const url = URL.createObjectURL(buffer);
     const a = document.createElement("a");
     a.href = url; a.download = "manuscript.docx"; a.click();
     URL.revokeObjectURL(url);
