@@ -1,25 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
-import htmlDocx from "html-docx-js";
+import HTMLtoDOCX from "html-to-docx";
 
 export async function POST(req: NextRequest) {
   const { html } = await req.json();
 
-  const fullHtml = `
-    <!DOCTYPE html><html><head><meta charset="utf-8">
-    <style>
-      body { font-family: Georgia, serif; font-size: 12pt; line-height: 1.8; margin: 1in; }
-      h1 { font-size: 18pt; font-weight: bold; margin-top: 2em; margin-bottom: 0.5em; }
-      h2 { font-size: 14pt; font-weight: bold; margin-top: 1.5em; }
-      h3 { font-size: 12pt; font-weight: bold; margin-top: 1em; }
-      blockquote { margin-left: 1em; border-left: 3px solid #ccc; padding-left: 1em; font-style: italic; }
-      code { font-family: "Courier New", monospace; font-size: 10pt; background: #f4f4f4; padding: 2px 4px; }
-      p { margin-bottom: 0.8em; }
-    </style></head><body>${html}</body></html>`;
+  const fullHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>${html}</body></html>`;
 
-  const buffer = htmlDocx.asBlob(fullHtml);
-  const arrayBuffer = await (buffer as Blob).arrayBuffer();
+  const buffer = await HTMLtoDOCX(fullHtml, null, {
+    table: { row: { cantSplit: true } },
+    footer: false,
+    pageNumber: false,
+    font: "Georgia",
+    fontSize: 24,
+    margins: { top: 1440, right: 1440, bottom: 1440, left: 1440 },
+  });
 
-  return new NextResponse(arrayBuffer, {
+  return new NextResponse(buffer as Buffer, {
     headers: {
       "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       "Content-Disposition": 'attachment; filename="manuscript.docx"',

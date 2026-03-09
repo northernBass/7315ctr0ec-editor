@@ -3,12 +3,15 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 
+const _initCharId = Date.now();
+const _initCh1Id = _initCharId + 1;
+const _initCh2Id = _initCharId + 2;
 const INITIAL_CHAPTERS = [
-  { id: 1, title: "Chapter 1", content: "<p>Begin writing here...</p>" },
-  { id: 2, title: "Chapter 2", content: "<p></p>" },
+  { id: _initCh1Id, title: "Chapter 1", content: "<p>Begin writing here...</p>" },
+  { id: _initCh2Id, title: "Chapter 2", content: "<p></p>" },
 ];
 const INITIAL_CHARACTERS = [
-  { id: 1, name: "Character One", age: "", appearance: "", history: "", role: "", arc: "", photo: null },
+  { id: _initCharId, name: "Character One", age: "", appearance: "", history: "", role: "", arc: "", photo: null },
 ];
 
 function generateFakeWordCounts() {
@@ -399,7 +402,7 @@ function ChapterEditor({ chapter, onUpdate, onWordCount }) {
     },
   }, [chapter.id]); // re-init when chapter changes
 
-  // sync content when switching chapters
+  // sync content when switching chapters, then focus
   useEffect(() => {
     if (editor && editor.getHTML() !== chapter.content) {
       editor.commands.setContent(chapter.content, false);
@@ -407,13 +410,14 @@ function ChapterEditor({ chapter, onUpdate, onWordCount }) {
     if (editor) {
       const text = editor.getText();
       onWordCount(text.trim() === "" ? 0 : text.trim().split(/\s+/).length);
+      setTimeout(() => editor.commands.focus("end"), 50);
     }
   }, [chapter.id]);
 
   return (
     <>
       <FormatToolbar editor={editor} />
-      <div className="editor-wrap">
+      <div className="editor-wrap" onClick={() => editor && !editor.isFocused && editor.commands.focus("end")}>
         <div className="editor-column">
           <EditorContent editor={editor} />
         </div>
@@ -483,7 +487,7 @@ function CharPhoto({ photo, onUpload }) {
 }
 
 // ─── TRASH DOCK ───────────────────────────────────────────────────────────────
-function TrashDock({ trashedChapters, trashedCharacters, onRestoreChapter, onPermDeleteChapter, onRestoreChar, onPermDeleteChar }) {
+function TrashDock({ trashedChapters, trashedCharacters, onRestoreChapter, onPermDeleteChapter, onRestoreChar, onPermDeleteChar, onPreview }) {
   const [open, setOpen] = useState(false);
   const total = trashedChapters.length + trashedCharacters.length;
   return (
@@ -502,11 +506,11 @@ function TrashDock({ trashedChapters, trashedCharacters, onRestoreChapter, onPer
           {trashedChapters.length > 0 && (
             <><div className="trash-type-label">Chapters</div>
             {trashedChapters.map((ch) => (
-              <div key={ch.id} className="nav-item trashed">
+              <div key={ch.id} className="nav-item trashed" onClick={() => onPreview("chapter", ch.id)}>
                 <div className="nav-item-name">{ch.title}</div>
                 <div className="nav-item-actions">
-                  <div className="nav-item-btn restore" onClick={() => onRestoreChapter(ch.id)}><RestoreIcon /></div>
-                  <div className="nav-item-btn" onClick={() => onPermDeleteChapter(ch.id)} style={{ color: "var(--red-alert)" }}><TrashIcon /></div>
+                  <div className="nav-item-btn restore" onClick={(e) => { e.stopPropagation(); onRestoreChapter(ch.id); }}><RestoreIcon /></div>
+                  <div className="nav-item-btn" onClick={(e) => { e.stopPropagation(); onPermDeleteChapter(ch.id); }} style={{ color: "var(--red-alert)" }}><TrashIcon /></div>
                 </div>
               </div>
             ))}</>
@@ -514,11 +518,11 @@ function TrashDock({ trashedChapters, trashedCharacters, onRestoreChapter, onPer
           {trashedCharacters.length > 0 && (
             <><div className="trash-type-label">Characters</div>
             {trashedCharacters.map((ch) => (
-              <div key={ch.id} className="nav-item trashed">
+              <div key={ch.id} className="nav-item trashed" onClick={() => onPreview("character", ch.id)}>
                 <div className="nav-item-name">{ch.name || "Unnamed"}</div>
                 <div className="nav-item-actions">
-                  <div className="nav-item-btn restore" onClick={() => onRestoreChar(ch.id)}><RestoreIcon /></div>
-                  <div className="nav-item-btn" onClick={() => onPermDeleteChar(ch.id)} style={{ color: "var(--red-alert)" }}><TrashIcon /></div>
+                  <div className="nav-item-btn restore" onClick={(e) => { e.stopPropagation(); onRestoreChar(ch.id); }}><RestoreIcon /></div>
+                  <div className="nav-item-btn" onClick={(e) => { e.stopPropagation(); onPermDeleteChar(ch.id); }} style={{ color: "var(--red-alert)" }}><TrashIcon /></div>
                 </div>
               </div>
             ))}</>
@@ -535,7 +539,7 @@ export default function App() {
   const [trashedChapters, setTrashedChapters] = useState([]);
   const [characters, setCharacters] = useState(INITIAL_CHARACTERS);
   const [trashedCharacters, setTrashedCharacters] = useState([]);
-  const [activeView, setActiveView] = useState({ type: "chapter", id: 1 });
+  const [activeView, setActiveView] = useState({ type: "chapter", id: _initCh1Id });
   const [chaptersOpen, setChaptersOpen] = useState(true);
   const [charsOpen, setCharsOpen] = useState(true);
   const [wordCounts] = useState(generateFakeWordCounts);
@@ -704,6 +708,7 @@ export default function App() {
             trashedChapters={trashedChapters} trashedCharacters={trashedCharacters}
             onRestoreChapter={restoreChapter} onPermDeleteChapter={permDeleteChapter}
             onRestoreChar={restoreCharacter} onPermDeleteChar={permDeleteCharacter}
+            onPreview={(type, id) => setActiveView({ type, id })}
           />
 
           <div className="system-bar">
