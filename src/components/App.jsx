@@ -383,7 +383,7 @@ function ChapterEditor({ chapter, onUpdate, onWordCount, onTitleChange }) {
   return (
     <>
       <FormatToolbar editor={editor} />
-      <div className="editor-wrap" onClick={(e) => { if (e.target === e.currentTarget) editor && editor.commands.focus("end"); }}>
+      <div className="editor-wrap" onClick={(e) => { if (e.target === e.currentTarget && !window.getSelection()?.toString()) editor && editor.commands.focus("end"); }}>
         <div className="editor-column">
           <input
             className="chapter-title-input"
