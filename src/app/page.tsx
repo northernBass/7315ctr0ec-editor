@@ -1,4 +1,4 @@
-"use client";
-import dynamic from "next/dynamic";
-const App = dynamic(() => import("@/components/App"), { ssr: false });
-export default function Page() { return <App />; }
+import { redirect } from "next/navigation";
+export default function RootPage() {
+  redirect("/dashboard");
+}

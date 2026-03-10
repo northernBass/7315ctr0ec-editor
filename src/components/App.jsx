@@ -4,6 +4,7 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, PageBreak } from "docx";
 import { supabase } from "@/lib/supabase";
+import { useRouter } from "next/navigation";
 
 const DAILY_GOAL = 1000;
 
@@ -464,7 +465,7 @@ function TrashDock({ trashedChapters, trashedCharacters, onRestoreChapter, onPer
 }
 
 // ─── APP ──────────────────────────────────────────────────────────────────────
-export default function App() {
+export default function App({ manuscriptId }) {
   const [chapters, setChapters] = useState([]);
   const [characters, setCharacters] = useState([]);
   const [wordCountData, setWordCountData] = useState([]);
@@ -478,6 +479,7 @@ export default function App() {
   const [dragOverId, setDragOverId] = useState(null);
   const [currentChapterWC, setCurrentChapterWC] = useState(0);
   const saveTimerRef = useRef(null);
+  const router = useRouter();
 
   const activeChapters = chapters.filter((c) => !c.deleted_at);
   const trashedChapters = chapters.filter((c) => c.deleted_at);
@@ -497,9 +499,9 @@ export default function App() {
   useEffect(() => {
     async function load() {
       const [{ data: chs }, { data: chars }, { data: wc }] = await Promise.all([
-        supabase.from("chapters").select("*").order("position"),
-        supabase.from("characters").select("*").order("created_at"),
-        supabase.from("word_count_log").select("*").order("date").limit(30),
+        supabase.from("chapters").select("*").eq("manuscript_id", manuscriptId).order("position"),
+        supabase.from("characters").select("*").eq("manuscript_id", manuscriptId).order("created_at"),
+        supabase.from("word_count_log").select("*").eq("manuscript_id", manuscriptId).order("date").limit(30),
       ]);
 
       setChapters(chs || []);
@@ -528,7 +530,7 @@ export default function App() {
   // ── SAVE WORD COUNT TO DB (debounced) ─────────────────────────────────────
   const saveWordCount = useDebounce(async (count) => {
     const today = new Date().toISOString().split("T")[0];
-    await supabase.from("word_count_log").upsert({ date: today, count }, { onConflict: "date" });
+    await supabase.from("word_count_log").upsert({ date: today, count, manuscript_id: manuscriptId }, { onConflict: "date,manuscript_id" });
     setWordCountData((prev) => prev.map((d) => d.date === today ? { ...d, count } : d));
   }, 3000);
 
@@ -565,7 +567,7 @@ export default function App() {
 
   async function addChapter() {
     const position = activeChapters.length;
-    const { data, error } = await supabase.from("chapters").insert({ title: `Chapter ${position + 1}`, content: "<p></p>", position }).select().single();
+    const { data, error } = await supabase.from("chapters").insert({ title: `Chapter ${position + 1}`, content: "<p></p>", position, manuscript_id: manuscriptId }).select().single();
     if (error || !data) return;
     setChapters((prev) => [...prev, data]);
     setActiveView({ type: "chapter", id: data.id });
@@ -615,7 +617,7 @@ export default function App() {
 
   // ── CHARACTERS ────────────────────────────────────────────────────────────
   async function addCharacter() {
-    const { data, error } = await supabase.from("characters").insert({ name: "New Character" }).select().single();
+    const { data, error } = await supabase.from("characters").insert({ name: "New Character", manuscript_id: manuscriptId }).select().single();
     if (error || !data) return;
     setCharacters((prev) => [...prev, data]);
     setActiveView({ type: "character", id: data.id });
@@ -782,8 +784,9 @@ export default function App() {
           )}
 
           <div className="system-bar">
-            <span className="sys-text">7315-CTR0 EC</span>
-            <span className="sys-text" style={{ marginLeft: "auto" }}><span className="sys-ok">■</span> CONNECTED TO SUPABASE</span>
+            <span className="sys-text" style={{ cursor: "pointer", color: "var(--blue-core)" }} onClick={() => router.push("/dashboard")}>← Dashboard</span>
+            <span className="sys-text" style={{ margin: "0 8px" }}>7315-CTR0 EC</span>
+            <span className="sys-text" style={{ marginLeft: "auto" }}><span className="sys-ok">■</span> SUPABASE</span>
           </div>
         </main>
       </div>
