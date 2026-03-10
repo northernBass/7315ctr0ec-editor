@@ -451,7 +451,7 @@ export default function Dashboard() {
       <div className="dash-shell">
         <div className="dash-topbar">
           <div className="dash-topbar-left">
-            <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="#4fc3f7" strokeWidth="1.5"><polygon points="12 2 22 7 22 17 12 22 2 17 2 7"/></svg>
+            <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="#4fc3f7" strokeWidth="1.5"><polygon points="12 2 22 22 2 22"/></svg>
             <div>
               <div className="dash-logo-text">7315-CTR0 EC</div>
               <div className="dash-logo-sub">MANUSCRIPT SYSTEM</div>
@@ -474,7 +474,7 @@ export default function Dashboard() {
         <div className="dash-content">
           {loading ? (
             <div className="dash-loading">
-              <svg width={36} height={36} viewBox="0 0 24 24" fill="none" stroke="#4fc3f7" strokeWidth="0.75" style={{ animation: "float 2s ease-in-out infinite" }}><polygon points="12 2 22 7 22 17 12 22 2 17 2 7"/></svg>
+              <svg width={36} height={36} viewBox="0 0 24 24" fill="none" stroke="#4fc3f7" strokeWidth="0.75" style={{ animation: "float 2s ease-in-out infinite" }}><polygon points="12 2 22 22 2 22"/></svg>
               <span className="dash-loading-text">Loading manuscripts...</span>
             </div>
           ) : (
@@ -483,7 +483,7 @@ export default function Dashboard() {
                 <>
                   {active.length === 0 && (
                     <div className="empty-dash">
-                      <svg width={40} height={40} viewBox="0 0 24 24" fill="none" stroke="#4fc3f7" strokeWidth="0.75" style={{ opacity: 0.3 }}><polygon points="12 2 22 7 22 17 12 22 2 17 2 7"/></svg>
+                      <svg width={40} height={40} viewBox="0 0 24 24" fill="none" stroke="#4fc3f7" strokeWidth="0.75" style={{ opacity: 0.3 }}><polygon points="12 2 22 22 2 22"/></svg>
                       <span className="empty-dash-text">No manuscripts yet</span>
                     </div>
                   )}

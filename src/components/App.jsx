@@ -731,14 +731,14 @@ export default function App({ manuscriptId }) {
 
           {loading && (
             <div className="loading-screen">
-              <svg width={40} height={40} viewBox="0 0 24 24" fill="none" stroke="#4fc3f7" strokeWidth="0.75" style={{ animation: "float 2s ease-in-out infinite" }}><polygon points="12 2 22 7 22 17 12 22 2 17 2 7" /></svg>
+              <svg width={40} height={40} viewBox="0 0 24 24" fill="none" stroke="#4fc3f7" strokeWidth="0.75" style={{ animation: "float 2s ease-in-out infinite" }}><polygon points="12 2 22 22 2 22" /></svg>
               <span className="loading-text">Loading manuscript...</span>
             </div>
           )}
 
           {!loading && !activeView && (
             <div className="empty-state">
-              <svg width={60} height={60} viewBox="0 0 24 24" fill="none" stroke="#4fc3f7" strokeWidth="0.75" style={{ opacity: 0.3 }}><polygon points="12 2 22 7 22 17 12 22 2 17 2 7" /></svg>
+              <svg width={60} height={60} viewBox="0 0 24 24" fill="none" stroke="#4fc3f7" strokeWidth="0.75" style={{ opacity: 0.3 }}><polygon points="12 2 22 22 2 22" /></svg>
               <span className="empty-text">Select or create a chapter</span>
             </div>
           )}
