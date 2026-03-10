@@ -186,6 +186,15 @@ const css = `
   .char-field-textarea { min-height: 100px; line-height: 1.6; }
   .char-field-textarea.large { min-height: 160px; }
 
+  .chapter-title-input {
+    display: block; width: 100%; background: transparent; border: none; outline: none;
+    font-family: var(--font-ui); font-size: 32px; font-weight: 700; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--text-primary); caret-color: var(--blue-core);
+    margin-bottom: 12px; line-height: 1.2;
+  }
+  .chapter-title-input::placeholder { color: var(--text-dim); }
+  .chapter-title-rule { height: 1px; background: var(--border-dim); margin-bottom: 32px; }
+
   .loading-screen { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: var(--text-dim); }
   .loading-text { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; animation: blink 1.5s ease-in-out infinite; }
   .empty-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: var(--text-dim); }
@@ -352,7 +361,7 @@ function FormatToolbar({ editor }) {
 }
 
 // ─── CHAPTER EDITOR ───────────────────────────────────────────────────────────
-function ChapterEditor({ chapter, onUpdate, onWordCount }) {
+function ChapterEditor({ chapter, onUpdate, onWordCount, onTitleChange }) {
   const editor = useEditor({
     extensions: [StarterKit],
     content: chapter.content,
@@ -376,6 +385,13 @@ function ChapterEditor({ chapter, onUpdate, onWordCount }) {
       <FormatToolbar editor={editor} />
       <div className="editor-wrap" onClick={(e) => { if (e.target === e.currentTarget) editor && editor.commands.focus("end"); }}>
         <div className="editor-column">
+          <input
+            className="chapter-title-input"
+            value={chapter.title}
+            onChange={(e) => onTitleChange(chapter.id, e.target.value)}
+            placeholder="Chapter title..."
+          />
+          <div className="chapter-title-rule" />
           <EditorContent editor={editor} />
         </div>
       </div>
@@ -744,7 +760,7 @@ export default function App({ manuscriptId }) {
           )}
 
           {!loading && activeView?.type === "chapter" && activeChapter && (
-            <ChapterEditor chapter={activeChapter} onUpdate={updateChapterContent} onWordCount={setCurrentChapterWC} />
+            <ChapterEditor chapter={activeChapter} onUpdate={updateChapterContent} onWordCount={setCurrentChapterWC} onTitleChange={updateChapterTitle} />
           )}
 
           {!loading && activeView?.type === "character" && activeCharacter && (
