@@ -490,7 +490,7 @@ export default function Dashboard() {
                   {active.map((ms) => (
                     <ManuscriptCard key={ms.id} ms={ms} wordCount={wordCounts[ms.id] || 0}
                       onOpen={() => router.push(`/editor/${ms.id}`)}
-                      onEdit={(e) => { setEditingMs(ms); }}
+                      onEdit={() => { setEditingMs(ms); }}
                       onDelete={() => handleDelete(ms.id)}
                       onExportMd={() => handleExport(ms, "md")}
                       onExportDocx={() => handleExport(ms, "docx")}
