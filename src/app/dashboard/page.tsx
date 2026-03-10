@@ -224,8 +224,9 @@ async function doExportDocx(ms, chapters) {
       const div = document.createElement("div"); div.innerHTML = ch.content || "";
       div.childNodes.forEach((node) => {
         if (node.nodeType !== 1) return;
-        const tag = node.tagName.toLowerCase();
-        if (tag === "p") sections.push(new Paragraph({ children: [new TextRun({ text: node.textContent || "" })] }));
+        const el = node as Element;
+        const tag = el.tagName.toLowerCase();
+        if (tag === "p") sections.push(new Paragraph({ children: [new TextRun({ text: el.textContent || "" })] }));
       });
       if (i < chapters.length - 1) sections.push(new Paragraph({ children: [new PageBreak()] }));
     });
