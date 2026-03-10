@@ -200,7 +200,7 @@ function htmlToMarkdown(html) {
   return html
     .replace(/<h1>(.*?)<\/h1>/gi, "# $1\n\n").replace(/<h2>(.*?)<\/h2>/gi, "## $1\n\n").replace(/<h3>(.*?)<\/h3>/gi, "### $1\n\n")
     .replace(/<strong>(.*?)<\/strong>/gi, "**$1**").replace(/<em>(.*?)<\/em>/gi, "*$1*").replace(/<s>(.*?)<\/s>/gi, "~~$1~~")
-    .replace(/<code>(.*?)<\/code>/gi, "`$1`").replace(/<p>(.*?)<\/p>/gis, "$1\n\n").replace(/<[^>]+>/g, "")
+    .replace(/<code>(.*?)<\/code>/gi, "`$1`").replace(/<p>(.*?)<\/p>/gi, "$1\n\n").replace(/<[^>]+>/g, "")
     .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/\n{3,}/g, "\n\n").trim();
 }
 
