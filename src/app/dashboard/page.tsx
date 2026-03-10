@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, PageBreak } from "docx";
@@ -182,7 +182,7 @@ const css = `
 `;
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
-function countWords(chapters) {
+function countWords(chapters: { content?: string }[]) {
   return chapters.reduce((sum, c) => {
     const div = document.createElement("div");
     div.innerHTML = c.content || "";
@@ -191,12 +191,12 @@ function countWords(chapters) {
   }, 0);
 }
 
-function formatDate(iso) {
+function formatDate(iso: string | null | undefined) {
   if (!iso) return "";
   return new Date(iso).toLocaleDateString("en-CA", { year: "numeric", month: "short", day: "numeric" });
 }
 
-function htmlToMarkdown(html) {
+function htmlToMarkdown(html: string) {
   return html
     .replace(/<h1>(.*?)<\/h1>/gi, "# $1\n\n").replace(/<h2>(.*?)<\/h2>/gi, "## $1\n\n").replace(/<h3>(.*?)<\/h3>/gi, "### $1\n\n")
     .replace(/<strong>(.*?)<\/strong>/gi, "**$1**").replace(/<em>(.*?)<\/em>/gi, "*$1*").replace(/<s>(.*?)<\/s>/gi, "~~$1~~")
@@ -204,19 +204,19 @@ function htmlToMarkdown(html) {
     .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/\n{3,}/g, "\n\n").trim();
 }
 
-function downloadFile(content, filename, mimeType) {
+function downloadFile(content: string, filename: string, mimeType: string) {
   const blob = new Blob([content], { type: mimeType });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a"); a.href = url; a.download = filename; a.click();
   URL.revokeObjectURL(url);
 }
 
-async function doExportMd(ms, chapters) {
+async function doExportMd(ms: { title: string }, chapters: { title: string; content?: string }[]) {
   const md = chapters.map(ch => `# ${ch.title}\n\n${htmlToMarkdown(ch.content || "")}`).join("\n\n---\n\n");
   downloadFile(md, `${ms.title}.md`, "text/markdown");
 }
 
-async function doExportDocx(ms, chapters) {
+async function doExportDocx(ms: { title: string }, chapters: { title: string; content?: string }[]) {
   try {
     const sections = [];
     chapters.forEach((ch, i) => {
@@ -248,7 +248,7 @@ const CameraIcon = () => <svg width={16} height={16} viewBox="0 0 24 24" fill="n
 const BookIcon = () => <svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>;
 
 // ─── MANUSCRIPT MODAL ─────────────────────────────────────────────────────────
-function ManuscriptModal({ initial, onSave, onClose }) {
+function ManuscriptModal({ initial, onSave, onClose }: { initial: any; onSave: (fields: any) => void; onClose: () => void }) {
   const [title, setTitle] = useState(initial?.title || "");
   const [author, setAuthor] = useState(initial?.author || "");
   const [series, setSeries] = useState(initial?.series || "");
@@ -256,11 +256,11 @@ function ManuscriptModal({ initial, onSave, onClose }) {
   const [status, setStatus] = useState(initial?.status || "Draft");
   const [coverUrl, setCoverUrl] = useState(initial?.cover_url || null);
   const [uploading, setUploading] = useState(false);
-  const fileRef = useRef();
+  const fileRef = useRef<HTMLInputElement>(null);
   const isEdit = !!initial;
 
-  async function handleCoverUpload(e) {
-    const file = e.target.files[0];
+  async function handleCoverUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
     const ext = file.name.split(".").pop();
@@ -330,7 +330,7 @@ function ManuscriptModal({ initial, onSave, onClose }) {
 }
 
 // ─── MANUSCRIPT CARD ─────────────────────────────────────────────────────────
-function ManuscriptCard({ ms, wordCount, onOpen, onEdit, onDelete, onRestore, onPermDelete, onExportMd, onExportDocx, isTrashed }) {
+function ManuscriptCard({ ms, wordCount, onOpen, onEdit, onDelete, onRestore, onPermDelete, onExportMd, onExportDocx, isTrashed }: { ms: any; wordCount: number; onOpen?: () => void; onEdit?: () => void; onDelete?: () => void; onRestore?: () => void; onPermDelete?: () => void; onExportMd?: () => void; onExportDocx?: () => void; isTrashed: boolean }) {
   const sc = STATUS_COLORS[ms.status] || STATUS_COLORS["Draft"];
   return (
     <div className={`ms-card ${isTrashed ? "trashed" : ""}`} onClick={!isTrashed ? onOpen : undefined}>
@@ -378,7 +378,7 @@ function ManuscriptCard({ ms, wordCount, onOpen, onEdit, onDelete, onRestore, on
 export default function Dashboard() {
   const router = useRouter();
   const [manuscripts, setManuscripts] = useState([]);
-  const [wordCounts, setWordCounts] = useState({});
+  const [wordCounts, setWordCounts] = useState<Record<number, number>>({});
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("active");
   const [showModal, setShowModal] = useState(false);
@@ -394,7 +394,7 @@ export default function Dashboard() {
 
     // Load word counts for all manuscripts
     if (mss && mss.length > 0) {
-      const counts = {};
+      const counts: Record<number, number> = {};
       await Promise.all(mss.map(async (ms) => {
         const { data: chapters } = await supabase.from("chapters").select("content").eq("manuscript_id", ms.id).is("deleted_at", null);
         counts[ms.id] = countWords(chapters || []);
