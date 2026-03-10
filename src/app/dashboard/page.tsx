@@ -285,10 +285,10 @@ function ManuscriptModal({ initial, onSave, onClose }) {
         <div className="modal-fields">
           <div className="modal-cover-row">
             {coverUrl
-              ? <img className="modal-cover-preview" src={coverUrl} alt="Cover" onClick={() => fileRef.current.click()} style={{ cursor: "pointer" }} />
-              : <div className="modal-cover-placeholder" onClick={() => fileRef.current.click()}><CameraIcon /></div>}
+              ? <img className="modal-cover-preview" src={coverUrl} alt="Cover" onClick={() => fileRef.current?.click()} style={{ cursor: "pointer" }} />
+              : <div className="modal-cover-placeholder" onClick={() => fileRef.current?.click()}><CameraIcon /></div>}
             <div className="modal-cover-info">
-              <button className="modal-cover-btn" onClick={() => fileRef.current.click()}>
+              <button className="modal-cover-btn" onClick={() => fileRef.current?.click()}>
                 <CameraIcon /> {uploading ? "Uploading..." : coverUrl ? "Replace cover" : "Upload cover"}
               </button>
               <div className="modal-cover-hint">Recommended: portrait<br />aspect ratio (e.g. 2:3)</div>
