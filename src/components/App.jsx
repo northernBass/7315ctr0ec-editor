@@ -27,6 +27,9 @@ const QuoteIcon = () => <svg width={13} height={13} viewBox="0 0 24 24" fill="no
 const H1Icon = () => <svg width={15} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 12h8M4 6v12M12 6v12M17 12l3-3v9" /></svg>;
 const H2Icon = () => <svg width={15} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 12h8M4 6v12M12 6v12M21 18h-4c0-4 4-3 4-6 0-1.5-1-2-2-2s-2 1-2 2" /></svg>;
 const H3Icon = () => <svg width={15} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 12h8M4 6v12M12 6v12M17.5 10c.5-.5 1.5-1 2.5-.5 1 .4 1.5 2 .5 3-.5.5-1 .7-1.5.7M17.5 18c.5.5 1.5 1 2.5.5 1-.4 1.5-2 .5-3-.5-.5-1-.7-1.5-.7" /></svg>;
+const HamburgerIcon = () => <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>;
+const XIcon = () => <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>;
+const ArrowLeftIcon = () => <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>;
 
 // ─── CSS ─────────────────────────────────────────────────────────────────────
 const css = `
@@ -204,6 +207,61 @@ const css = `
   .system-bar { height: 22px; display: flex; align-items: center; padding: 0 14px; border-top: 1px solid var(--border-dim); background: var(--bg-deep); flex-shrink: 0; }
   .sys-text { font-family: var(--font-mono); font-size: 8px; color: var(--text-dim); letter-spacing: 0.1em; text-transform: uppercase; }
   .sys-ok { color: var(--green-ok); }
+
+  /* ── MOBILE ── */
+  @media (max-width: 768px) {
+    body { overflow: auto; }
+    .app-shell { flex-direction: column; height: 100dvh; }
+    .sidebar { display: none; }
+    .main { flex: 1; min-height: 0; }
+
+    /* Mobile topbar */
+    .topbar { padding: 0 12px; height: 48px; }
+    .topbar-breadcrumb { display: none; }
+    .topbar-title-input { font-size: 14px; }
+    .export-btn { display: none; }
+    .topbar-wc { display: none; }
+
+    /* Mobile hamburger button */
+    .mob-menu-btn { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border: 1px solid var(--border-dim); border-radius: 3px; color: var(--text-secondary); cursor: pointer; flex-shrink: 0; background: transparent; }
+    .mob-menu-btn:hover { border-color: var(--blue-core); color: var(--blue-core); }
+
+    /* Mobile drawer overlay */
+    .mob-drawer-backdrop { position: fixed; inset: 0; background: rgba(5,8,16,0.7); z-index: 200; }
+    .mob-drawer { position: fixed; top: 0; right: 0; bottom: 0; width: 80vw; max-width: 300px; background: var(--bg-deep); border-left: 1px solid var(--border-med); z-index: 201; display: flex; flex-direction: column; overflow: hidden; }
+    .mob-drawer-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid var(--border-dim); flex-shrink: 0; }
+    .mob-drawer-title { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-dim); }
+    .mob-drawer-close { display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border: 1px solid var(--border-dim); border-radius: 3px; color: var(--text-dim); cursor: pointer; background: transparent; }
+    .mob-drawer-scroll { flex: 1; overflow-y: auto; padding: 8px 0; }
+    .mob-drawer-footer { border-top: 1px solid var(--border-dim); padding: 10px 16px; flex-shrink: 0; }
+    .mob-back-btn { display: flex; align-items: center; gap: 8px; font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--text-dim); cursor: pointer; padding: 6px 0; transition: color 0.15s; background: transparent; border: none; width: 100%; }
+    .mob-back-btn:hover { color: var(--blue-core); }
+    .mob-status { font-family: var(--font-mono); font-size: 8px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-dim); padding: 6px 0 0; }
+
+    /* Mobile nav items bigger touch targets */
+    .mob-drawer .nav-item { padding: 9px 16px 9px 20px; font-size: 14px; }
+    .mob-drawer .nav-item-actions { opacity: 1; }
+    .mob-drawer .section-header { padding: 12px 16px 6px; }
+    .mob-drawer .trash-dock-toggle { padding: 10px 16px; }
+
+    /* Editor padding on mobile */
+    .editor-wrap { padding: 24px 16px 80px; }
+    .chapter-title-input { font-size: 24px; }
+    .format-toolbar { padding: 5px 12px; overflow-x: auto; flex-wrap: nowrap; }
+    .char-panel { padding: 20px 16px 80px; }
+    .char-fields { grid-template-columns: 1fr; }
+    .char-field-full { grid-column: 1; }
+
+    /* System bar hidden on mobile */
+    .system-bar { display: none; }
+  }
+
+  /* Hide mob-menu-btn on desktop */
+  @media (min-width: 769px) {
+    .mob-menu-btn { display: none; }
+    .mob-drawer-backdrop { display: none; }
+    .mob-drawer { display: none; }
+  }
 `;
 
 // ─── DEBOUNCE ─────────────────────────────────────────────────────────────────
@@ -480,6 +538,86 @@ function TrashDock({ trashedChapters, trashedCharacters, onRestoreChapter, onPer
   );
 }
 
+// ─── MOBILE DRAWER ───────────────────────────────────────────────────────────
+function MobileDrawer({ open, onClose, activeView, setActiveView, activeChapters, trashedChapters, activeCharacters, trashedCharacters, onAddChapter, onAddCharacter, onDeleteChapter, onRestoreChapter, onPermDeleteChapter, onDeleteCharacter, onRestoreChar, onPermDeleteChar, saveStatus, router }) {
+  const [chaptersOpen, setChaptersOpen] = useState(true);
+  const [charsOpen, setCharsOpen] = useState(true);
+  const [trashOpen, setTrashOpen] = useState(false);
+  const total = trashedChapters.length + trashedCharacters.length;
+  if (!open) return null;
+  function nav(type, id) { setActiveView({ type, id }); onClose(); }
+  return (
+    <>
+      <div className="mob-drawer-backdrop" onClick={onClose} />
+      <div className="mob-drawer">
+        <div className="mob-drawer-header">
+          <span className="mob-drawer-title">Navigation</span>
+          <button className="mob-drawer-close" onClick={onClose}><XIcon /></button>
+        </div>
+        <div className="mob-drawer-scroll">
+          <div className="section-header" onClick={() => setChaptersOpen(v => !v)}>
+            <div className="section-header-left">{chaptersOpen ? <ChevronDown /> : <ChevronRight />}<span className="section-title">Manuscript</span></div>
+            <div className="section-actions" onClick={e => e.stopPropagation()}><button className="section-btn" onClick={() => { onAddChapter(); onClose(); }}><PlusIcon /></button></div>
+          </div>
+          {chaptersOpen && activeChapters.map(ch => (
+            <div key={ch.id} className={`nav-item ${activeView?.type === "chapter" && activeView.id === ch.id ? "active" : ""}`} onClick={() => nav("chapter", ch.id)}>
+              <div className="nav-item-dot" />
+              <div className="nav-item-name">{ch.title}</div>
+              <div className="nav-item-actions"><div className="nav-item-btn" onClick={e => { e.stopPropagation(); onDeleteChapter(ch.id); onClose(); }}><TrashIcon /></div></div>
+            </div>
+          ))}
+          <div className="sep" />
+          <div className="section-header" onClick={() => setCharsOpen(v => !v)}>
+            <div className="section-header-left">{charsOpen ? <ChevronDown /> : <ChevronRight />}<span className="section-title">Characters</span></div>
+            <div className="section-actions" onClick={e => e.stopPropagation()}><button className="section-btn" onClick={() => { onAddCharacter(); onClose(); }}><PlusIcon /></button></div>
+          </div>
+          {charsOpen && activeCharacters.map(ch => (
+            <div key={ch.id} className={`nav-item ${activeView?.type === "character" && activeView.id === ch.id ? "active" : ""}`} onClick={() => nav("character", ch.id)}>
+              <div className="nav-item-dot" />
+              <div className="nav-item-name">{ch.name || "Unnamed"}</div>
+              <div className="nav-item-actions"><div className="nav-item-btn" onClick={e => { e.stopPropagation(); onDeleteCharacter(ch.id); onClose(); }}><TrashIcon /></div></div>
+            </div>
+          ))}
+          <div className="sep" />
+          <div className="trash-dock">
+            <div className="trash-dock-toggle" onClick={() => setTrashOpen(v => !v)}>
+              <div className="trash-dock-left"><TrashIcon size={11} /><span className={`trash-dock-label ${total > 0 ? "has-items" : ""}`}>Trash</span>{total > 0 && <span className="trash-badge">{total}</span>}</div>
+              {trashOpen ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
+            </div>
+            {trashOpen && (
+              <div className="trash-dock-panel">
+                {total === 0 && <div style={{ padding: "10px 14px", fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--text-dim)" }}>EMPTY</div>}
+                {trashedChapters.length > 0 && (<><div className="trash-type-label">Chapters</div>{trashedChapters.map(ch => (
+                  <div key={ch.id} className="nav-item trashed" onClick={() => nav("chapter", ch.id)}>
+                    <div className="nav-item-name">{ch.title}</div>
+                    <div className="nav-item-actions">
+                      <div className="nav-item-btn restore" onClick={e => { e.stopPropagation(); onRestoreChapter(ch.id); onClose(); }}><RestoreIcon /></div>
+                      <div className="nav-item-btn" onClick={e => { e.stopPropagation(); onPermDeleteChapter(ch.id); }} style={{ color: "var(--red-alert)" }}><TrashIcon /></div>
+                    </div>
+                  </div>
+                ))}</>)}
+                {trashedCharacters.length > 0 && (<><div className="trash-type-label">Characters</div>{trashedCharacters.map(ch => (
+                  <div key={ch.id} className="nav-item trashed" onClick={() => nav("character", ch.id)}>
+                    <div className="nav-item-name">{ch.name || "Unnamed"}</div>
+                    <div className="nav-item-actions">
+                      <div className="nav-item-btn restore" onClick={e => { e.stopPropagation(); onRestoreChar(ch.id); onClose(); }}><RestoreIcon /></div>
+                      <div className="nav-item-btn" onClick={e => { e.stopPropagation(); onPermDeleteChar(ch.id); }} style={{ color: "var(--red-alert)" }}><TrashIcon /></div>
+                    </div>
+                  </div>
+                ))}</>)}
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="mob-drawer-footer">
+          <button className="mob-back-btn" onClick={() => router.push("/dashboard")}><ArrowLeftIcon /> Back to Dashboard</button>
+          <div className="mob-status"><span style={{ color: saveStatus === "SYNCED" ? "var(--green-ok)" : "var(--amber)" }}>■</span> {saveStatus}</div>
+        </div>
+      </div>
+    </>
+  );
+}
+
 // ─── APP ──────────────────────────────────────────────────────────────────────
 export default function App({ manuscriptId }) {
   const [chapters, setChapters] = useState([]);
@@ -494,6 +632,7 @@ export default function App({ manuscriptId }) {
   const [dragId, setDragId] = useState(null);
   const [dragOverId, setDragOverId] = useState(null);
   const [currentChapterWC, setCurrentChapterWC] = useState(0);
+  const [mobMenuOpen, setMobMenuOpen] = useState(false);
   const saveTimerRef = useRef(null);
   const router = useRouter();
 
@@ -725,87 +864,3 @@ export default function App({ manuscriptId }) {
           />
           <div className="system-bar"><span className="sys-text">{totalWords.toLocaleString()} words total</span></div>
         </aside>
-
-        <main className="main">
-          <div className="topbar">
-            <div className="topbar-left">
-              <span className="topbar-breadcrumb">{activeView?.type === "chapter" ? "MANUSCRIPT //" : "CHARACTERS //"}</span>
-              {activeView?.type === "chapter" && activeChapter && (
-                <input className="topbar-title-input" value={activeChapter.title} onChange={(e) => updateChapterTitle(activeChapter.id, e.target.value)} placeholder="Chapter title..." />
-              )}
-              {activeView?.type === "character" && activeCharacter && (
-                <span style={{ fontFamily: "var(--font-ui)", fontSize: 15, fontWeight: 600, letterSpacing: "0.05em", color: "var(--text-primary)" }}>{activeCharacter.name || "Unnamed Character"}</span>
-              )}
-            </div>
-            <div className="topbar-right">
-              {activeView?.type === "chapter" && <span className="topbar-wc"><span>{currentChapterWC.toLocaleString()}</span> words</span>}
-              <button className="export-btn" onClick={() => exportMarkdown(activeChapters)}><DownloadIcon /> .md</button>
-              <button className="export-btn" onClick={() => exportDocx(activeChapters)}><DownloadIcon /> .docx</button>
-              <div className="status-chip"><div className="status-dot" />{saveStatus}</div>
-            </div>
-          </div>
-
-          {loading && (
-            <div className="loading-screen">
-              <svg width={40} height={40} viewBox="0 0 24 24" fill="none" stroke="#4fc3f7" strokeWidth="0.75" style={{ animation: "float 2s ease-in-out infinite" }}><polygon points="12 2 22 22 2 22" /></svg>
-              <span className="loading-text">Loading manuscript...</span>
-            </div>
-          )}
-
-          {!loading && !activeView && (
-            <div className="empty-state">
-              <svg width={60} height={60} viewBox="0 0 24 24" fill="none" stroke="#4fc3f7" strokeWidth="0.75" style={{ opacity: 0.3 }}><polygon points="12 2 22 22 2 22" /></svg>
-              <span className="empty-text">Select or create a chapter</span>
-            </div>
-          )}
-
-          {!loading && activeView?.type === "chapter" && activeChapter && (
-            <ChapterEditor chapter={activeChapter} onUpdate={updateChapterContent} onWordCount={setCurrentChapterWC} onTitleChange={updateChapterTitle} />
-          )}
-
-          {!loading && activeView?.type === "character" && activeCharacter && (
-            <div className="char-panel">
-              <div className="char-header">
-                <CharPhoto photo={activeCharacter.photo_url} onUpload={(url) => updateCharacter(activeCharacter.id, "photo_url", url)} />
-                <div className="char-header-info">
-                  <div className="char-name-row">
-                    <input className="char-name-input" value={activeCharacter.name} onChange={(e) => updateCharacter(activeCharacter.id, "name", e.target.value)} placeholder="CHARACTER NAME" />
-                    <div className="char-id-badge">ID_{String(activeCharacter.id).slice(-6)}</div>
-                  </div>
-                </div>
-              </div>
-              <div className="char-fields">
-                <div>
-                  <div className="char-field-label">Age</div>
-                  <input className="char-field-input" value={activeCharacter.age || ""} onChange={(e) => updateCharacter(activeCharacter.id, "age", e.target.value)} placeholder="Age or approximate..." />
-                </div>
-                <div>
-                  <div className="char-field-label">Role</div>
-                  <input className="char-field-input" value={activeCharacter.role || ""} onChange={(e) => updateCharacter(activeCharacter.id, "role", e.target.value)} placeholder="Protagonist, antagonist..." />
-                </div>
-                <div className="char-field-full">
-                  <div className="char-field-label">Appearance</div>
-                  <textarea className="char-field-textarea" value={activeCharacter.appearance || ""} onChange={(e) => updateCharacter(activeCharacter.id, "appearance", e.target.value)} placeholder="Physical description..." rows={3} />
-                </div>
-                <div className="char-field-full">
-                  <div className="char-field-label">History</div>
-                  <textarea className="char-field-textarea" value={activeCharacter.history || ""} onChange={(e) => updateCharacter(activeCharacter.id, "history", e.target.value)} placeholder="Background, backstory, relevant history..." rows={4} />
-                </div>
-                <div className="char-field-full">
-                  <div className="char-field-label">Character Arc</div>
-                  <textarea className="char-field-textarea large" value={activeCharacter.arc || ""} onChange={(e) => updateCharacter(activeCharacter.id, "arc", e.target.value)} placeholder="Where do they start? Where do they end up? What changes them?" rows={6} />
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div className="system-bar">
-            <span className="sys-text" style={{ cursor: "pointer", color: "var(--blue-core)" }} onClick={() => router.push("/dashboard")}>← Dashboard</span>
-            <span className="sys-text" style={{ margin: "0 8px" }}>7315-CTR0 EC</span>
-            <span className="sys-text" style={{ marginLeft: "auto" }}><span className="sys-ok">■</span> SUPABASE</span>
-          </div>
-        </main>
-      </div>
-    </>
-  );
-}
