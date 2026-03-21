@@ -864,3 +864,98 @@ export default function App({ manuscriptId }) {
           />
           <div className="system-bar"><span className="sys-text">{totalWords.toLocaleString()} words total</span></div>
         </aside>
+
+        <main className="main">
+          <div className="topbar">
+            <div className="topbar-left">
+              <span className="topbar-breadcrumb">{activeView?.type === "chapter" ? "MANUSCRIPT //" : "CHARACTERS //"}</span>
+              {activeView?.type === "chapter" && activeChapter && (
+                <input className="topbar-title-input" value={activeChapter.title} onChange={(e) => updateChapterTitle(activeChapter.id, e.target.value)} placeholder="Chapter title..." />
+              )}
+              {activeView?.type === "character" && activeCharacter && (
+                <span style={{ fontFamily: "var(--font-ui)", fontSize: 15, fontWeight: 600, letterSpacing: "0.05em", color: "var(--text-primary)" }}>{activeCharacter.name || "Unnamed Character"}</span>
+              )}
+            </div>
+            <div className="topbar-right">
+              {activeView?.type === "chapter" && <span className="topbar-wc"><span>{currentChapterWC.toLocaleString()}</span> words</span>}
+              <button className="export-btn" onClick={() => exportMarkdown(activeChapters)}><DownloadIcon /> .md</button>
+              <button className="export-btn" onClick={() => exportDocx(activeChapters)}><DownloadIcon /> .docx</button>
+              <div className="status-chip"><div className="status-dot" />{saveStatus}</div>
+              <button className="mob-menu-btn" onClick={() => setMobMenuOpen(true)}><HamburgerIcon /></button>
+            </div>
+          </div>
+
+          {loading && (
+            <div className="loading-screen">
+              <svg width={40} height={40} viewBox="0 0 24 24" fill="none" stroke="#4fc3f7" strokeWidth="0.75" style={{ animation: "float 2s ease-in-out infinite" }}><polygon points="12 2 22 22 2 22" /></svg>
+              <span className="loading-text">Loading manuscript...</span>
+            </div>
+          )}
+
+          {!loading && !activeView && (
+            <div className="empty-state">
+              <svg width={60} height={60} viewBox="0 0 24 24" fill="none" stroke="#4fc3f7" strokeWidth="0.75" style={{ opacity: 0.3 }}><polygon points="12 2 22 22 2 22" /></svg>
+              <span className="empty-text">Select or create a chapter</span>
+            </div>
+          )}
+
+          {!loading && activeView?.type === "chapter" && activeChapter && (
+            <ChapterEditor chapter={activeChapter} onUpdate={updateChapterContent} onWordCount={setCurrentChapterWC} onTitleChange={updateChapterTitle} />
+          )}
+
+          {!loading && activeView?.type === "character" && activeCharacter && (
+            <div className="char-panel">
+              <div className="char-header">
+                <CharPhoto photo={activeCharacter.photo_url} onUpload={(url) => updateCharacter(activeCharacter.id, "photo_url", url)} />
+                <div className="char-header-info">
+                  <div className="char-name-row">
+                    <input className="char-name-input" value={activeCharacter.name} onChange={(e) => updateCharacter(activeCharacter.id, "name", e.target.value)} placeholder="CHARACTER NAME" />
+                    <div className="char-id-badge">ID_{String(activeCharacter.id).slice(-6)}</div>
+                  </div>
+                </div>
+              </div>
+              <div className="char-fields">
+                <div>
+                  <div className="char-field-label">Age</div>
+                  <input className="char-field-input" value={activeCharacter.age || ""} onChange={(e) => updateCharacter(activeCharacter.id, "age", e.target.value)} placeholder="Age or approximate..." />
+                </div>
+                <div>
+                  <div className="char-field-label">Role</div>
+                  <input className="char-field-input" value={activeCharacter.role || ""} onChange={(e) => updateCharacter(activeCharacter.id, "role", e.target.value)} placeholder="Protagonist, antagonist..." />
+                </div>
+                <div className="char-field-full">
+                  <div className="char-field-label">Appearance</div>
+                  <textarea className="char-field-textarea" value={activeCharacter.appearance || ""} onChange={(e) => updateCharacter(activeCharacter.id, "appearance", e.target.value)} placeholder="Physical description..." rows={3} />
+                </div>
+                <div className="char-field-full">
+                  <div className="char-field-label">History</div>
+                  <textarea className="char-field-textarea" value={activeCharacter.history || ""} onChange={(e) => updateCharacter(activeCharacter.id, "history", e.target.value)} placeholder="Background, backstory, relevant history..." rows={4} />
+                </div>
+                <div className="char-field-full">
+                  <div className="char-field-label">Character Arc</div>
+                  <textarea className="char-field-textarea large" value={activeCharacter.arc || ""} onChange={(e) => updateCharacter(activeCharacter.id, "arc", e.target.value)} placeholder="Where do they start? Where do they end up? What changes them?" rows={6} />
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="system-bar">
+            <span className="sys-text" style={{ cursor: "pointer", color: "var(--blue-core)" }} onClick={() => router.push("/dashboard")}>← Dashboard</span>
+            <span className="sys-text" style={{ margin: "0 8px" }}>7315-CTR0 EC</span>
+            <span className="sys-text" style={{ marginLeft: "auto" }}><span className="sys-ok">■</span> SUPABASE</span>
+          </div>
+        </main>
+      </div>
+      <MobileDrawer
+        open={mobMenuOpen} onClose={() => setMobMenuOpen(false)}
+        activeView={activeView} setActiveView={setActiveView}
+        activeChapters={activeChapters} trashedChapters={trashedChapters}
+        activeCharacters={activeCharacters} trashedCharacters={trashedCharacters}
+        onAddChapter={addChapter} onAddCharacter={addCharacter}
+        onDeleteChapter={deleteChapter} onRestoreChapter={restoreChapter} onPermDeleteChapter={permDeleteChapter}
+        onDeleteCharacter={deleteCharacter} onRestoreChar={restoreCharacter} onPermDeleteChar={permDeleteCharacter}
+        saveStatus={saveStatus} router={router}
+      />
+    </>
+  );
+}
