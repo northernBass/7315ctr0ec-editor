@@ -197,17 +197,11 @@ const css = `
   .char-field-textarea.large { min-height: 160px; }
 
   .tiptap-editor hr {
-    border: none; position: relative; margin: 2em 0; height: 1px;
-    background: transparent;
+    border: none; margin: 2em 0; text-align: center; color: var(--text-dim);
+    font-family: var(--font-body); font-size: 14px; letter-spacing: 0.5em;
   }
   .tiptap-editor hr::before {
-    content: '◆'; position: absolute; left: 50%; transform: translateX(-50%) translateY(-50%);
-    font-size: 10px; color: var(--border-bright); letter-spacing: 0.5em;
-    background: var(--bg-void); padding: 0 12px;
-  }
-  .tiptap-editor hr::after {
-    content: ''; position: absolute; top: 50%; left: 0; right: 0;
-    height: 1px; background: var(--border-dim);
+    content: '* * *';
   }
 
   .chapter-title-input {
@@ -268,17 +262,11 @@ const css = `
     /* Editor padding on mobile */
     .editor-wrap { padding: 24px 16px 80px; }
     .tiptap-editor hr {
-    border: none; position: relative; margin: 2em 0; height: 1px;
-    background: transparent;
+    border: none; margin: 2em 0; text-align: center; color: var(--text-dim);
+    font-family: var(--font-body); font-size: 14px; letter-spacing: 0.5em;
   }
   .tiptap-editor hr::before {
-    content: '◆'; position: absolute; left: 50%; transform: translateX(-50%) translateY(-50%);
-    font-size: 10px; color: var(--border-bright); letter-spacing: 0.5em;
-    background: var(--bg-void); padding: 0 12px;
-  }
-  .tiptap-editor hr::after {
-    content: ''; position: absolute; top: 50%; left: 0; right: 0;
-    height: 1px; background: var(--border-dim);
+    content: '* * *';
   }
 
   .chapter-title-input { font-size: 24px; }
