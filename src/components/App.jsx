@@ -697,8 +697,8 @@ export default function App({ manuscriptId }) {
       setWordCountData(scaffold);
 
       // Store today's existing count as base, snapshot will be set after totalWords is computed
-      const today = new Date().toISOString().split("T")[0];
-      const todayRow = (wc || []).find((r) => r.date === today);
+      const todayStr = new Date().toISOString().split("T")[0];
+      const todayRow = (wc || []).find((r) => r.date === todayStr);
       todayBaseRef.current = todayRow?.count || 0;
 
       const live = chs?.filter((c) => !c.deleted_at) || [];
