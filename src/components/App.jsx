@@ -654,6 +654,8 @@ export default function App({ manuscriptId }) {
   const [mobMenuOpen, setMobMenuOpen] = useState(false);
   const saveTimerRef = useRef(null);
   const router = useRouter();
+  const loadSnapshotRef = useRef(null);
+  const todayBaseRef = useRef(0);
 
   const activeChapters = chapters.filter((c) => !c.deleted_at);
   const trashedChapters = chapters.filter((c) => c.deleted_at);
@@ -694,6 +696,11 @@ export default function App({ manuscriptId }) {
       });
       setWordCountData(scaffold);
 
+      // Store today's existing count as base, snapshot will be set after totalWords is computed
+      const today = new Date().toISOString().split("T")[0];
+      const todayRow = (wc || []).find((r) => r.date === today);
+      todayBaseRef.current = todayRow?.count || 0;
+
       const live = chs?.filter((c) => !c.deleted_at) || [];
       if (live.length > 0) setActiveView({ type: "chapter", id: live[0].id });
       setLoading(false);
@@ -702,10 +709,17 @@ export default function App({ manuscriptId }) {
   }, []);
 
   // ── SAVE WORD COUNT TO DB (debounced) ─────────────────────────────────────
-  const saveWordCount = useDebounce(async (count) => {
+  const saveWordCount = useDebounce(async (currentTotal) => {
+    // Set load snapshot on first call (after data is loaded)
+    if (loadSnapshotRef.current === null) {
+      loadSnapshotRef.current = currentTotal;
+      return;
+    }
+    const wordsThisSession = Math.max(0, currentTotal - loadSnapshotRef.current);
+    const todayCount = todayBaseRef.current + wordsThisSession;
     const today = new Date().toISOString().split("T")[0];
-    await supabase.from("word_count_log").upsert({ date: today, count, manuscript_id: manuscriptId }, { onConflict: "date,manuscript_id" });
-    setWordCountData((prev) => prev.map((d) => d.date === today ? { ...d, count } : d));
+    await supabase.from("word_count_log").upsert({ date: today, count: todayCount, manuscript_id: manuscriptId }, { onConflict: "date,manuscript_id" });
+    setWordCountData((prev) => prev.map((d) => d.date === today ? { ...d, count: todayCount } : d));
   }, 3000);
 
   useEffect(() => { saveWordCount(totalWords); }, [totalWords]);
