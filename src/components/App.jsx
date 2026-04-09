@@ -381,19 +381,20 @@ async function exportDocx(chapters) {
 
 // ─── WORD COUNT GRAPH ─────────────────────────────────────────────────────────
 function WordCountGraph({ data, totalWords, goal }) {
-  const maxCount = Math.max(...data.map((d) => d.count), totalWords, goal);
+  const todayCount = data.length > 0 ? data[data.length - 1].count : 0;
+  const maxCount = Math.max(...data.map((d) => d.count), goal, 1);
   const goalPct = Math.min((goal / maxCount) * 100, 100);
   return (
     <div className="wc-graph-section">
       <span className="wc-label">30-day output</span>
       <div className="wc-graph-header">
         <div>
-          <div className="wc-today">{totalWords.toLocaleString()}</div>
+          <div className="wc-today">{todayCount.toLocaleString()}</div>
           <div className="wc-goal" style={{ marginTop: 2 }}>words today</div>
         </div>
         <div className="wc-goal" style={{ textAlign: "right" }}>
-          <div style={{ color: totalWords >= goal ? "var(--green-ok)" : "var(--text-dim)" }}>
-            {totalWords >= goal ? "GOAL MET ✓" : `${goal - totalWords} to go`}
+          <div style={{ color: todayCount >= goal ? "var(--green-ok)" : "var(--text-dim)" }}>
+            {todayCount >= goal ? "GOAL MET ✓" : `${goal - todayCount} to go`}
           </div>
           <div>goal: {goal.toLocaleString()}</div>
         </div>
@@ -401,7 +402,7 @@ function WordCountGraph({ data, totalWords, goal }) {
       <div className="bar-chart" style={{ "--goal-pct": goalPct }}>
         {data.map((d, i) => {
           const isToday = i === data.length - 1;
-          const count = isToday ? totalWords : d.count;
+          const count = d.count;
           const height = count === 0 ? 4 : Math.max((count / maxCount) * 100, 6);
           const cls = isToday ? "bar bar-today" : count === 0 ? "bar bar-empty" : count >= goal ? "bar bar-goal" : "bar bar-partial";
           return <div key={d.date} className={cls} style={{ height: `${height}%` }} data-count={count} title={`${d.label}: ${count}`} />;
