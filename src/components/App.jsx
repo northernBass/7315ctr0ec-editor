@@ -279,6 +279,45 @@ const css = `
     .mob-drawer-backdrop { display: none; }
     .mob-drawer { display: none; }
   }
+
+  /* ── TIMELINE ── */
+  .tl-panel { flex: 1; overflow-y: auto; padding: 32px 40px 60px; display: flex; flex-direction: column; gap: 24px; }
+  .tl-panel::-webkit-scrollbar { width: 4px; }
+  .tl-panel::-webkit-scrollbar-thumb { background: var(--border-dim); }
+  .tl-header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 16px; border-bottom: 1px solid var(--border-dim); }
+  .tl-title { font-family: var(--font-ui); font-size: 22px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-primary); }
+  .tl-subtitle { font-family: var(--font-mono); font-size: 9px; color: var(--text-dim); letter-spacing: 0.15em; margin-top: 2px; }
+  .tl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+  .tl-card {
+    background: var(--bg-deep); border: 1px solid var(--border-dim); border-radius: 5px;
+    display: flex; flex-direction: column; overflow: hidden;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    cursor: grab; position: relative;
+  }
+  .tl-card:active { cursor: grabbing; }
+  .tl-card:hover { border-color: var(--border-bright); box-shadow: 0 0 16px rgba(79,195,247,0.07); }
+  .tl-card.tl-drag-over { border-color: var(--blue-core); box-shadow: 0 0 0 2px var(--blue-glow); }
+  .tl-card.tl-dragging { opacity: 0.35; }
+  .tl-card-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px 8px; border-bottom: 1px solid var(--border-dim); background: var(--bg-panel); gap: 8px; }
+  .tl-card-num { font-family: var(--font-mono); font-size: 9px; color: var(--blue-core); letter-spacing: 0.15em; flex-shrink: 0; }
+  .tl-card-title { font-family: var(--font-ui); font-size: 14px; font-weight: 700; color: var(--text-primary); letter-spacing: 0.04em; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tl-card-wc { font-family: var(--font-mono); font-size: 9px; color: var(--text-dim); flex-shrink: 0; }
+  .tl-card-body { padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; flex: 1; }
+  .tl-field-label { font-family: var(--font-mono); font-size: 8px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+  .tl-field-label::after { content: ""; flex: 1; height: 1px; background: var(--border-dim); }
+  .tl-textarea { width: 100%; background: var(--bg-panel); border: 1px solid var(--border-dim); border-radius: 3px; outline: none; font-family: var(--font-body); font-size: 13px; font-weight: 300; color: var(--text-primary); padding: 7px 10px; transition: border-color 0.15s; resize: none; line-height: 1.55; letter-spacing: 0.01em; }
+  .tl-textarea:focus { border-color: var(--blue-core); box-shadow: 0 0 0 1px var(--blue-glow); }
+  .tl-textarea::placeholder { color: var(--text-dim); font-style: italic; }
+  .tl-tags-wrap { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; background: var(--bg-panel); border: 1px solid var(--border-dim); border-radius: 3px; padding: 5px 8px; min-height: 34px; transition: border-color 0.15s; }
+  .tl-tags-wrap:focus-within { border-color: var(--blue-core); box-shadow: 0 0 0 1px var(--blue-glow); }
+  .tl-tag { display: inline-flex; align-items: center; gap: 4px; background: rgba(79,195,247,0.1); border: 1px solid rgba(79,195,247,0.25); border-radius: 2px; padding: 1px 6px; font-family: var(--font-mono); font-size: 9px; color: var(--blue-core); letter-spacing: 0.08em; }
+  .tl-tag-x { cursor: pointer; opacity: 0.6; font-size: 10px; line-height: 1; padding: 0 1px; transition: opacity 0.1s; }
+  .tl-tag-x:hover { opacity: 1; }
+  .tl-tag-input { background: transparent; border: none; outline: none; font-family: var(--font-mono); font-size: 9px; color: var(--text-secondary); flex: 1; min-width: 60px; letter-spacing: 0.08em; }
+  .tl-tag-input::placeholder { color: var(--text-dim); }
+  .tl-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 60px; color: var(--text-dim); grid-column: 1 / -1; }
+  .tl-empty-text { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; }
+
 `;
 
 // ─── DEBOUNCE ─────────────────────────────────────────────────────────────────
@@ -522,6 +561,168 @@ function CharPhoto({ photo, onUpload }) {
   );
 }
 
+
+// ─── TIMELINE VIEW ────────────────────────────────────────────────────────────
+function TagInput({ tags, onChange }) {
+  const [input, setInput] = useState("");
+
+  function commitInput(val) {
+    const trimmed = val.trim().replace(/,+$/, "").trim();
+    if (trimmed && !tags.includes(trimmed)) {
+      onChange([...tags, trimmed]);
+    }
+    setInput("");
+  }
+
+  function handleKey(e) {
+    if (e.key === "," || e.key === "Enter") {
+      e.preventDefault();
+      commitInput(input);
+    } else if (e.key === "Backspace" && input === "" && tags.length > 0) {
+      onChange(tags.slice(0, -1));
+    }
+  }
+
+  function removeTag(tag) {
+    onChange(tags.filter((t) => t !== tag));
+  }
+
+  return (
+    <div className="tl-tags-wrap" onClick={(e) => e.currentTarget.querySelector("input")?.focus()}>
+      {tags.map((tag) => (
+        <span key={tag} className="tl-tag">
+          {tag}<span className="tl-tag-x" onMouseDown={(e) => { e.preventDefault(); removeTag(tag); }}>×</span>
+        </span>
+      ))}
+      <input
+        className="tl-tag-input"
+        value={input}
+        onChange={(e) => {
+          const v = e.target.value;
+          if (v.endsWith(",")) { commitInput(v); }
+          else { setInput(v); }
+        }}
+        onKeyDown={handleKey}
+        onBlur={() => commitInput(input)}
+        placeholder={tags.length === 0 ? "Add tags, separate with comma…" : ""}
+      />
+    </div>
+  );
+}
+
+function TimelineCard({ chapter, index, tlData, onTlChange, onDragStart, onDragOver, onDrop, isDragging, isDragOver }) {
+  const data = tlData || { summary: "", notes: "", tags: [] };
+
+  function wordCount(html) {
+    if (!html) return 0;
+    const div = document.createElement("div");
+    div.innerHTML = html;
+    const text = div.textContent || "";
+    return text.trim() === "" ? 0 : text.trim().split(/\s+/).length;
+  }
+
+  return (
+    <div
+      className={`tl-card${isDragging ? " tl-dragging" : ""}${isDragOver ? " tl-drag-over" : ""}`}
+      draggable
+      onDragStart={(e) => onDragStart(e, chapter.id)}
+      onDragOver={(e) => { e.preventDefault(); onDragOver(e, chapter.id); }}
+      onDrop={(e) => { e.preventDefault(); onDrop(e, chapter.id); }}
+      onDragEnd={() => {}}
+    >
+      <div className="tl-card-header">
+        <span className="tl-card-num">CH.{String(index + 1).padStart(2, "0")}</span>
+        <span className="tl-card-title" title={chapter.title}>{chapter.title || "Untitled"}</span>
+        <span className="tl-card-wc">{wordCount(chapter.content).toLocaleString()} w</span>
+      </div>
+      <div className="tl-card-body">
+        <div>
+          <div className="tl-field-label">Summary</div>
+          <textarea
+            className="tl-textarea"
+            rows={3}
+            value={data.summary}
+            onChange={(e) => onTlChange(chapter.id, "summary", e.target.value)}
+            placeholder="What happens in this chapter…"
+            onMouseDown={(e) => e.stopPropagation()}
+          />
+        </div>
+        <div>
+          <div className="tl-field-label">Notes</div>
+          <textarea
+            className="tl-textarea"
+            rows={2}
+            value={data.notes}
+            onChange={(e) => onTlChange(chapter.id, "notes", e.target.value)}
+            placeholder="Craft notes, reminders, loose ends…"
+            onMouseDown={(e) => e.stopPropagation()}
+          />
+        </div>
+        <div>
+          <div className="tl-field-label">Tags</div>
+          <TagInput
+            tags={data.tags || []}
+            onChange={(newTags) => onTlChange(chapter.id, "tags", newTags)}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TimelineView({ chapters, tlData, onTlChange, onReorder }) {
+  const [dragId, setDragId] = useState(null);
+  const [dragOverId, setDragOverId] = useState(null);
+
+  function handleDragStart(e, id) {
+    setDragId(id);
+    e.dataTransfer.effectAllowed = "move";
+  }
+
+  function handleDragOver(e, id) {
+    if (id !== dragId) setDragOverId(id);
+  }
+
+  function handleDrop(e, targetId) {
+    if (!dragId || dragId === targetId) { setDragId(null); setDragOverId(null); return; }
+    onReorder(dragId, targetId);
+    setDragId(null);
+    setDragOverId(null);
+  }
+
+  return (
+    <div className="tl-panel">
+      <div className="tl-header">
+        <div>
+          <div className="tl-title">Timeline</div>
+          <div className="tl-subtitle">{chapters.length} {chapters.length === 1 ? "CHAPTER" : "CHAPTERS"} · DRAG TO REORDER</div>
+        </div>
+      </div>
+      <div className="tl-grid">
+        {chapters.length === 0 && (
+          <div className="tl-empty">
+            <div className="tl-empty-text">No chapters yet</div>
+          </div>
+        )}
+        {chapters.map((ch, i) => (
+          <TimelineCard
+            key={ch.id}
+            chapter={ch}
+            index={i}
+            tlData={tlData[ch.id]}
+            onTlChange={onTlChange}
+            onDragStart={handleDragStart}
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
+            isDragging={dragId === ch.id}
+            isDragOver={dragOverId === ch.id}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ─── TRASH DOCK ───────────────────────────────────────────────────────────────
 function TrashDock({ trashedChapters, trashedCharacters, onRestoreChapter, onPermDeleteChapter, onRestoreChar, onPermDeleteChar, onPreview }) {
   const [open, setOpen] = useState(false);
@@ -657,6 +858,8 @@ export default function App({ manuscriptId }) {
   const [currentChapterWC, setCurrentChapterWC] = useState(0);
   const [mobMenuOpen, setMobMenuOpen] = useState(false);
   const [todayWords, setTodayWords] = useState(0);
+  const [tlData, setTlData] = useState({});
+  const [timelineOpen, setTimelineOpen] = useState(true);
   const saveTimerRef = useRef(null);
   const router = useRouter();
   const loadSnapshotRef = useRef(null);
@@ -679,14 +882,26 @@ export default function App({ manuscriptId }) {
   // ── LOAD ──────────────────────────────────────────────────────────────────
   useEffect(() => {
     async function load() {
-      const [{ data: chs }, { data: chars }, { data: wc }] = await Promise.all([
+      const [{ data: chs }, { data: chars }, { data: wc }, { data: tl }] = await Promise.all([
         supabase.from("chapters").select("*").eq("manuscript_id", manuscriptId).order("position"),
         supabase.from("characters").select("*").eq("manuscript_id", manuscriptId).order("created_at"),
         supabase.from("word_count_log").select("*").eq("manuscript_id", manuscriptId).order("date").limit(30),
+        supabase.from("chapter_timeline").select("*").eq("manuscript_id", manuscriptId),
       ]);
 
       setChapters(chs || []);
       setCharacters(chars || []);
+
+      // Build tlData map keyed by chapter_id
+      const tlMap = {};
+      (tl || []).forEach((row) => {
+        tlMap[row.chapter_id] = {
+          summary: row.summary || "",
+          notes: row.notes || "",
+          tags: row.tags || [],
+        };
+      });
+      setTlData(tlMap);
 
       // Build 30-day graph data, merging DB records with date scaffold
       const today = new Date();
@@ -853,6 +1068,38 @@ export default function App({ manuscriptId }) {
     saveCharacter(id, { [field]: value });
   }
 
+  // ── TIMELINE ──────────────────────────────────────────────────────────────
+  const saveTlDebounced = useDebounce(async (chapterId, patch) => {
+    await supabase.from("chapter_timeline").upsert(
+      { chapter_id: chapterId, manuscript_id: manuscriptId, ...patch },
+      { onConflict: "chapter_id" }
+    );
+  }, 1500);
+
+  function handleTlChange(chapterId, field, value) {
+    setTlData((prev) => {
+      const existing = prev[chapterId] || { summary: "", notes: "", tags: [] };
+      const updated = { ...existing, [field]: value };
+      saveTlDebounced(chapterId, { [field]: value });
+      return { ...prev, [chapterId]: updated };
+    });
+  }
+
+  function handleTlReorder(dragId, targetId) {
+    const active = chapters.filter((c) => !c.deleted_at);
+    const dragIdx = active.findIndex((c) => c.id === dragId);
+    const targetIdx = active.findIndex((c) => c.id === targetId);
+    if (dragIdx < 0 || targetIdx < 0) return;
+    const reordered = [...active];
+    const [moved] = reordered.splice(dragIdx, 1);
+    reordered.splice(targetIdx, 0, moved);
+    const trashed = chapters.filter((c) => c.deleted_at);
+    setChapters([...reordered, ...trashed]);
+    reordered.forEach((ch, i) => {
+      supabase.from("chapters").update({ position: i }).eq("id", ch.id);
+    });
+  }
+
   // ── RENDER ────────────────────────────────────────────────────────────────
   return (
     <>
@@ -900,6 +1147,25 @@ export default function App({ manuscriptId }) {
                 <div className="nav-item-actions"><div className="nav-item-btn" onClick={(e) => { e.stopPropagation(); deleteCharacter(ch.id); }}><TrashIcon /></div></div>
               </div>
             ))}
+
+            <div className="sep" />
+
+            <div className="section-header" onClick={() => setTimelineOpen((v) => !v)}>
+              <div className="section-header-left">{timelineOpen ? <ChevronDown /> : <ChevronRight />}<span className="section-title">Timeline</span></div>
+            </div>
+
+            {timelineOpen && (
+              <div
+                className={`nav-item ${activeView?.type === "timeline" ? "active" : ""}`}
+                onClick={() => setActiveView({ type: "timeline" })}
+              >
+                <div className="nav-item-dot" style={{ background: activeView?.type === "timeline" ? "var(--blue-core)" : "var(--border-bright)" }} />
+                <div className="nav-item-name">Story Timeline</div>
+                <div className="nav-item-actions" style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--text-dim)" }}>
+                  {activeChapters.length}ch
+                </div>
+              </div>
+            )}
           </div>
 
           <TrashDock
@@ -914,7 +1180,7 @@ export default function App({ manuscriptId }) {
         <main className="main">
           <div className="topbar">
             <div className="topbar-left">
-              <span className="topbar-breadcrumb">{activeView?.type === "chapter" ? "MANUSCRIPT //" : "CHARACTERS //"}</span>
+              <span className="topbar-breadcrumb">{activeView?.type === "chapter" ? "MANUSCRIPT //" : activeView?.type === "character" ? "CHARACTERS //" : "TIMELINE //"}</span>
               {activeView?.type === "chapter" && activeChapter && (
                 <input className="topbar-title-input" value={activeChapter.title} onChange={(e) => updateChapterTitle(activeChapter.id, e.target.value)} placeholder="Chapter title..." />
               )}
@@ -947,6 +1213,15 @@ export default function App({ manuscriptId }) {
 
           {!loading && activeView?.type === "chapter" && activeChapter && (
             <ChapterEditor chapter={activeChapter} onUpdate={updateChapterContent} onWordCount={setCurrentChapterWC} onTitleChange={updateChapterTitle} />
+          )}
+
+          {!loading && activeView?.type === "timeline" && (
+            <TimelineView
+              chapters={activeChapters}
+              tlData={tlData}
+              onTlChange={handleTlChange}
+              onReorder={handleTlReorder}
+            />
           )}
 
           {!loading && activeView?.type === "character" && activeCharacter && (
