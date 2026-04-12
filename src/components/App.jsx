@@ -380,21 +380,20 @@ async function exportDocx(chapters) {
 }
 
 // ─── WORD COUNT GRAPH ─────────────────────────────────────────────────────────
-function WordCountGraph({ data, totalWords, goal }) {
-  const todayCount = data.length > 0 ? data[data.length - 1].count : 0;
-  const maxCount = Math.max(...data.map((d) => d.count), goal, 1);
+function WordCountGraph({ data, todayWords, totalWords, goal }) {
+  const maxCount = Math.max(...data.map((d) => d.count), todayWords, goal, 1);
   const goalPct = Math.min((goal / maxCount) * 100, 100);
   return (
     <div className="wc-graph-section">
       <span className="wc-label">30-day output</span>
       <div className="wc-graph-header">
         <div>
-          <div className="wc-today">{todayCount.toLocaleString()}</div>
+          <div className="wc-today">{todayWords.toLocaleString()}</div>
           <div className="wc-goal" style={{ marginTop: 2 }}>words today</div>
         </div>
         <div className="wc-goal" style={{ textAlign: "right" }}>
-          <div style={{ color: todayCount >= goal ? "var(--green-ok)" : "var(--text-dim)" }}>
-            {todayCount >= goal ? "GOAL MET ✓" : `${goal - todayCount} to go`}
+          <div style={{ color: todayWords >= goal ? "var(--green-ok)" : "var(--text-dim)" }}>
+            {todayWords >= goal ? "GOAL MET ✓" : `${goal - todayWords} to go`}
           </div>
           <div>goal: {goal.toLocaleString()}</div>
         </div>
@@ -402,11 +401,15 @@ function WordCountGraph({ data, totalWords, goal }) {
       <div className="bar-chart" style={{ "--goal-pct": goalPct }}>
         {data.map((d, i) => {
           const isToday = i === data.length - 1;
-          const count = d.count;
+          const count = isToday ? todayWords : d.count;
           const height = count === 0 ? 4 : Math.max((count / maxCount) * 100, 6);
           const cls = isToday ? "bar bar-today" : count === 0 ? "bar bar-empty" : count >= goal ? "bar bar-goal" : "bar bar-partial";
           return <div key={d.date} className={cls} style={{ height: `${height}%` }} data-count={count} title={`${d.label}: ${count}`} />;
         })}
+      </div>
+      <div style={{ marginTop: 8, fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--text-dim)", letterSpacing: "0.1em", display: "flex", justifyContent: "space-between" }}>
+        <span>MANUSCRIPT TOTAL</span>
+        <span style={{ color: "var(--text-secondary)" }}>{totalWords.toLocaleString()} words</span>
       </div>
     </div>
   );
@@ -653,6 +656,7 @@ export default function App({ manuscriptId }) {
   const [dragOverId, setDragOverId] = useState(null);
   const [currentChapterWC, setCurrentChapterWC] = useState(0);
   const [mobMenuOpen, setMobMenuOpen] = useState(false);
+  const [todayWords, setTodayWords] = useState(0);
   const saveTimerRef = useRef(null);
   const router = useRouter();
   const loadSnapshotRef = useRef(null);
@@ -697,33 +701,41 @@ export default function App({ manuscriptId }) {
       });
       setWordCountData(scaffold);
 
-      // Store today's existing count as base, snapshot will be set after totalWords is computed
       const todayStr = new Date().toISOString().split("T")[0];
       const todayRow = (wc || []).find((r) => r.date === todayStr);
       todayBaseRef.current = todayRow?.count || 0;
 
+      // Compute load snapshot from loaded chapters so session delta starts at 0
       const live = chs?.filter((c) => !c.deleted_at) || [];
+      const loadTotal = live.reduce((sum, c) => {
+        const div = document.createElement("div");
+        div.innerHTML = c.content || "";
+        const text = div.textContent || "";
+        return sum + (text.trim() === "" ? 0 : text.trim().split(/\s+/).length);
+      }, 0);
+      loadSnapshotRef.current = loadTotal;
+      setTodayWords(todayBaseRef.current); // session delta is 0 at load
+
       if (live.length > 0) setActiveView({ type: "chapter", id: live[0].id });
       setLoading(false);
     }
     load();
   }, []);
 
-  // ── SAVE WORD COUNT TO DB (debounced) ─────────────────────────────────────
-  const saveWordCount = useDebounce(async (currentTotal) => {
-    // Set load snapshot on first call (after data is loaded)
-    if (loadSnapshotRef.current === null) {
-      loadSnapshotRef.current = currentTotal;
-      return;
-    }
-    const wordsThisSession = Math.max(0, currentTotal - loadSnapshotRef.current);
-    const todayCount = todayBaseRef.current + wordsThisSession;
+  // ── WORD COUNT: live display + debounced persist ─────────────────────────
+  const persistWordCount = useDebounce(async (todayCount) => {
     const today = new Date().toISOString().split("T")[0];
     await supabase.from("word_count_log").upsert({ date: today, count: todayCount, manuscript_id: manuscriptId }, { onConflict: "date,manuscript_id" });
     setWordCountData((prev) => prev.map((d) => d.date === today ? { ...d, count: todayCount } : d));
   }, 3000);
 
-  useEffect(() => { saveWordCount(totalWords); }, [totalWords]);
+  useEffect(() => {
+    if (loadSnapshotRef.current === null) return;
+    const wordsThisSession = Math.max(0, totalWords - loadSnapshotRef.current);
+    const todayCount = todayBaseRef.current + wordsThisSession;
+    setTodayWords(todayCount);
+    persistWordCount(todayCount);
+  }, [totalWords]);
 
   // ── SAVE STATUS ───────────────────────────────────────────────────────────
   function triggerSave() {
@@ -852,7 +864,7 @@ export default function App({ manuscriptId }) {
             <div><div className="logo-text">7315-CTR0 EC</div><div className="logo-sub">MANUSCRIPT_SYSTEM v0.1</div></div>
           </div>
           <div className="sidebar-scroll">
-            <WordCountGraph data={wordCountData} totalWords={totalWords} goal={DAILY_GOAL} />
+            <WordCountGraph data={wordCountData} todayWords={todayWords} totalWords={totalWords} goal={DAILY_GOAL} />
 
             <div className="section-header" onClick={() => setChaptersOpen((v) => !v)}>
               <div className="section-header-left">{chaptersOpen ? <ChevronDown /> : <ChevronRight />}<span className="section-title">Manuscript</span></div>
