@@ -279,6 +279,27 @@ const css = `
     .mob-drawer-backdrop { display: none; }
     .mob-drawer { display: none; }
   }
+  /* ── TIMELINE TABS ── */
+  .tl-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border-dim); margin-bottom: 24px; }
+  .tl-tab { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-dim); padding: 8px 16px; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; user-select: none; }
+  .tl-tab:hover { color: var(--text-secondary); }
+  .tl-tab.active { color: var(--blue-core); border-bottom-color: var(--blue-core); }
+
+  /* ── STATS ── */
+  .stats-panel { flex: 1; overflow-y: auto; padding: 32px 40px 60px; display: flex; flex-direction: column; gap: 32px; }
+  .stats-panel::-webkit-scrollbar { width: 4px; }
+  .stats-panel::-webkit-scrollbar-thumb { background: var(--border-dim); }
+  .stats-section-title { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 16px; }
+  .stats-chart-wrap { background: var(--bg-deep); border: 1px solid var(--border-dim); border-radius: 5px; padding: 24px 24px 16px; position: relative; }
+  .stats-chart-svg { width: 100%; overflow: visible; }
+  .stats-bar { fill: var(--blue-dim); transition: fill 0.15s; cursor: default; }
+  .stats-bar:hover { fill: var(--blue-core); }
+  .stats-tooltip { pointer-events: none; }
+  .stats-summary { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+  .stats-stat { background: var(--bg-deep); border: 1px solid var(--border-dim); border-radius: 4px; padding: 14px 16px; }
+  .stats-stat-value { font-family: var(--font-mono); font-size: 22px; color: var(--blue-core); line-height: 1; }
+  .stats-stat-label { font-family: var(--font-mono); font-size: 8px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--text-dim); margin-top: 4px; }
+
 
   /* ── TIMELINE ── */
   .tl-panel { flex: 1; overflow-y: auto; padding: 32px 40px 60px; display: flex; flex-direction: column; gap: 24px; }
@@ -670,7 +691,142 @@ function TimelineCard({ chapter, index, tlData, onTlChange, onDragStart, onDragO
   );
 }
 
+
+// ─── STATISTICS VIEW ─────────────────────────────────────────────────────────
+function StatisticsView({ chapters }) {
+  const [tooltip, setTooltip] = useState(null);
+
+  function wordCount(html) {
+    if (!html) return 0;
+    const div = document.createElement("div");
+    div.innerHTML = html;
+    const text = div.textContent || "";
+    return text.trim() === "" ? 0 : text.trim().split(/\s+/).length;
+  }
+
+  const data = chapters.map((ch, i) => ({
+    index: i,
+    id: ch.id,
+    title: ch.title || "Untitled",
+    wc: wordCount(ch.content),
+  }));
+
+  const total = data.reduce((s, d) => s + d.wc, 0);
+  const avg = data.length > 0 ? Math.round(total / data.length) : 0;
+  const longest = data.reduce((a, b) => (b.wc > a.wc ? b : a), data[0] || { wc: 0, title: "—" });
+  const shortest = data.filter(d => d.wc > 0).reduce((a, b) => (b.wc < a.wc ? b : a), data.find(d => d.wc > 0) || { wc: 0, title: "—" });
+
+  const maxWc = Math.max(...data.map(d => d.wc), 1);
+
+  // Chart dimensions
+  const chartH = 200;
+  const barGap = 4;
+  const minBarW = 12;
+  const n = data.length;
+
+  return (
+    <div className="stats-panel">
+      <div className="stats-summary">
+        <div className="stats-stat">
+          <div className="stats-stat-value">{total.toLocaleString()}</div>
+          <div className="stats-stat-label">Total words</div>
+        </div>
+        <div className="stats-stat">
+          <div className="stats-stat-value">{avg.toLocaleString()}</div>
+          <div className="stats-stat-label">Avg per chapter</div>
+        </div>
+        <div className="stats-stat">
+          <div className="stats-stat-value">{n}</div>
+          <div className="stats-stat-label">Chapters</div>
+        </div>
+        {longest && longest.wc > 0 && (
+          <div className="stats-stat">
+            <div className="stats-stat-value">{longest.wc.toLocaleString()}</div>
+            <div className="stats-stat-label">Longest · {longest.title}</div>
+          </div>
+        )}
+      </div>
+
+      <div>
+        <div className="stats-section-title">Word count by chapter</div>
+        <div className="stats-chart-wrap">
+          <svg
+            className="stats-chart-svg"
+            viewBox={`0 0 ${Math.max(n * (minBarW + barGap), 300)} ${chartH + 32}`}
+            preserveAspectRatio="none"
+            style={{ height: 240 }}
+            onMouseLeave={() => setTooltip(null)}
+          >
+            {data.map((d, i) => {
+              const barW = minBarW;
+              const x = i * (barW + barGap);
+              const barH = d.wc === 0 ? 2 : Math.max((d.wc / maxWc) * chartH, 4);
+              const y = chartH - barH;
+              const cx = x + barW / 2;
+              return (
+                <g key={d.id}>
+                  <rect
+                    className="stats-bar"
+                    x={x} y={y} width={barW} height={barH}
+                    rx={2}
+                    onMouseEnter={(e) => setTooltip({ i, d, cx, y })}
+                  />
+                  {/* x-axis label */}
+                  <text
+                    x={cx} y={chartH + 14}
+                    textAnchor="middle"
+                    style={{ fontFamily: "var(--font-mono)", fontSize: 7, fill: "var(--text-dim)" }}
+                  >
+                    {i + 1}
+                  </text>
+                </g>
+              );
+            })}
+
+            {/* avg line */}
+            {avg > 0 && (
+              <line
+                x1={0} y1={chartH - (avg / maxWc) * chartH}
+                x2={n * (minBarW + barGap)} y2={chartH - (avg / maxWc) * chartH}
+                stroke="var(--amber)" strokeWidth={1} strokeDasharray="3 3" opacity={0.5}
+              />
+            )}
+
+            {/* tooltip */}
+            {tooltip && (() => {
+              const { i, d, cx, y } = tooltip;
+              const tw = 140; const th = 44; const pad = 6;
+              const tx = Math.min(cx - tw / 2, n * (minBarW + barGap) - tw);
+              const ty = Math.max(y - th - 8, 0);
+              return (
+                <g className="stats-tooltip">
+                  <rect x={tx} y={ty} width={tw} height={th} rx={3}
+                    fill="var(--bg-panel)" stroke="var(--border-bright)" strokeWidth={1} />
+                  <text x={tx + pad} y={ty + 14}
+                    style={{ fontFamily: "var(--font-mono)", fontSize: 8, fill: "var(--blue-core)" }}>
+                    CH.{String(i + 1).padStart(2, "0")} · {d.wc.toLocaleString()} words
+                  </text>
+                  <text x={tx + pad} y={ty + 30}
+                    style={{ fontFamily: "var(--font-mono)", fontSize: 8, fill: "var(--text-secondary)" }}>
+                    {d.title.length > 18 ? d.title.slice(0, 17) + "…" : d.title}
+                  </text>
+                </g>
+              );
+            })()}
+          </svg>
+          {avg > 0 && (
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: 8, color: "var(--amber)", opacity: 0.7, marginTop: 4, letterSpacing: "0.1em" }}>
+              — avg {avg.toLocaleString()} words
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function TimelineView({ chapters, tlData, onTlChange, onReorder }) {
+  const [tab, setTab] = useState("timeline");
   const [dragId, setDragId] = useState(null);
   const [dragOverId, setDragOverId] = useState(null);
 
@@ -690,6 +846,26 @@ function TimelineView({ chapters, tlData, onTlChange, onReorder }) {
     setDragOverId(null);
   }
 
+  if (tab === "statistics") {
+    return (
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        <div className="tl-panel" style={{ paddingBottom: 0, gap: 0 }}>
+          <div className="tl-header" style={{ marginBottom: 0 }}>
+            <div>
+              <div className="tl-title">Statistics</div>
+              <div className="tl-subtitle">{chapters.length} {chapters.length === 1 ? "CHAPTER" : "CHAPTERS"}</div>
+            </div>
+          </div>
+          <div className="tl-tabs">
+            <div className="tl-tab" onClick={() => setTab("timeline")}>Timeline</div>
+            <div className="tl-tab active">Statistics</div>
+          </div>
+        </div>
+        <StatisticsView chapters={chapters} />
+      </div>
+    );
+  }
+
   return (
     <div className="tl-panel">
       <div className="tl-header">
@@ -697,6 +873,10 @@ function TimelineView({ chapters, tlData, onTlChange, onReorder }) {
           <div className="tl-title">Timeline</div>
           <div className="tl-subtitle">{chapters.length} {chapters.length === 1 ? "CHAPTER" : "CHAPTERS"} · DRAG TO REORDER</div>
         </div>
+      </div>
+      <div className="tl-tabs">
+        <div className="tl-tab active">Timeline</div>
+        <div className="tl-tab" onClick={() => setTab("statistics")}>Statistics</div>
       </div>
       <div className="tl-grid">
         {chapters.length === 0 && (
@@ -908,7 +1088,8 @@ export default function App({ manuscriptId }) {
       const scaffold = Array.from({ length: 30 }, (_, i) => {
         const d = new Date(today);
         d.setDate(today.getDate() - (29 - i));
-        return { date: d.toISOString().split("T")[0], label: d.toLocaleDateString("en-CA", { month: "short", day: "numeric" }), count: 0 };
+        const yyyy = d.getFullYear(), mm = String(d.getMonth()+1).padStart(2,"0"), dd = String(d.getDate()).padStart(2,"0");
+        return { date: `${yyyy}-${mm}-${dd}`, label: d.toLocaleDateString("en-CA", { month: "short", day: "numeric" }), count: 0 };
       });
       (wc || []).forEach((row) => {
         const slot = scaffold.find((s) => s.date === row.date);
@@ -916,7 +1097,7 @@ export default function App({ manuscriptId }) {
       });
       setWordCountData(scaffold);
 
-      const todayStr = new Date().toISOString().split("T")[0];
+      const _td = new Date(); const todayStr = `${_td.getFullYear()}-${String(_td.getMonth()+1).padStart(2,"0")}-${String(_td.getDate()).padStart(2,"0")}`;
       const todayRow = (wc || []).find((r) => r.date === todayStr);
       todayBaseRef.current = todayRow?.count || 0;
 
@@ -938,14 +1119,24 @@ export default function App({ manuscriptId }) {
   }, []);
 
   // ── WORD COUNT: live display + debounced persist ─────────────────────────
+  const sessionDateRef = useRef(null); // tracks which date the current session started on
+
   const persistWordCount = useDebounce(async (todayCount) => {
-    const today = new Date().toISOString().split("T")[0];
+    const _d = new Date(); const today = `${_d.getFullYear()}-${String(_d.getMonth()+1).padStart(2,"0")}-${String(_d.getDate()).padStart(2,"0")}`;
     await supabase.from("word_count_log").upsert({ date: today, count: todayCount, manuscript_id: manuscriptId }, { onConflict: "date,manuscript_id" });
     setWordCountData((prev) => prev.map((d) => d.date === today ? { ...d, count: todayCount } : d));
   }, 3000);
 
   useEffect(() => {
     if (loadSnapshotRef.current === null) return;
+    const _d = new Date(); const today = `${_d.getFullYear()}-${String(_d.getMonth()+1).padStart(2,"0")}-${String(_d.getDate()).padStart(2,"0")}`;
+    // If the date has changed since session start, reset base so we don't carry yesterday's count
+    if (sessionDateRef.current && sessionDateRef.current !== today) {
+      todayBaseRef.current = 0;
+      loadSnapshotRef.current = totalWords;
+      sessionDateRef.current = today;
+    }
+    if (!sessionDateRef.current) sessionDateRef.current = today;
     const wordsThisSession = Math.max(0, totalWords - loadSnapshotRef.current);
     const todayCount = todayBaseRef.current + wordsThisSession;
     setTodayWords(todayCount);
