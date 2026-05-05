@@ -1418,7 +1418,7 @@ export default function App({ manuscriptId }) {
 
           {!loading && activeView?.type === "statistics" && (
             <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-              <div className="tl-panel" style={{ paddingBottom: 0, gap: 0 }}>
+              <div style={{ padding: "32px 40px 0", flexShrink: 0 }}>
                 <div className="tl-header">
                   <div>
                     <div className="tl-title">Statistics</div>
