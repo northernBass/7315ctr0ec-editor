@@ -826,7 +826,6 @@ function StatisticsView({ chapters }) {
 }
 
 function TimelineView({ chapters, tlData, onTlChange, onReorder }) {
-  const [tab, setTab] = useState("timeline");
   const [dragId, setDragId] = useState(null);
   const [dragOverId, setDragOverId] = useState(null);
 
@@ -846,26 +845,6 @@ function TimelineView({ chapters, tlData, onTlChange, onReorder }) {
     setDragOverId(null);
   }
 
-  if (tab === "statistics") {
-    return (
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-        <div className="tl-panel" style={{ paddingBottom: 0, gap: 0 }}>
-          <div className="tl-header" style={{ marginBottom: 0 }}>
-            <div>
-              <div className="tl-title">Statistics</div>
-              <div className="tl-subtitle">{chapters.length} {chapters.length === 1 ? "CHAPTER" : "CHAPTERS"}</div>
-            </div>
-          </div>
-          <div className="tl-tabs">
-            <div className="tl-tab" onClick={() => setTab("timeline")}>Timeline</div>
-            <div className="tl-tab active">Statistics</div>
-          </div>
-        </div>
-        <StatisticsView chapters={chapters} />
-      </div>
-    );
-  }
-
   return (
     <div className="tl-panel">
       <div className="tl-header">
@@ -873,10 +852,6 @@ function TimelineView({ chapters, tlData, onTlChange, onReorder }) {
           <div className="tl-title">Timeline</div>
           <div className="tl-subtitle">{chapters.length} {chapters.length === 1 ? "CHAPTER" : "CHAPTERS"} · DRAG TO REORDER</div>
         </div>
-      </div>
-      <div className="tl-tabs">
-        <div className="tl-tab active">Timeline</div>
-        <div className="tl-tab" onClick={() => setTab("statistics")}>Statistics</div>
       </div>
       <div className="tl-grid">
         {chapters.length === 0 && (
@@ -946,6 +921,7 @@ function TrashDock({ trashedChapters, trashedCharacters, onRestoreChapter, onPer
 function MobileDrawer({ open, onClose, activeView, setActiveView, activeChapters, trashedChapters, activeCharacters, trashedCharacters, onAddChapter, onAddCharacter, onDeleteChapter, onRestoreChapter, onPermDeleteChapter, onDeleteCharacter, onRestoreChar, onPermDeleteChar, saveStatus, router }) {
   const [chaptersOpen, setChaptersOpen] = useState(true);
   const [charsOpen, setCharsOpen] = useState(true);
+  const [detailsOpen, setDetailsOpen] = useState(true);
   const [trashOpen, setTrashOpen] = useState(false);
   const total = trashedChapters.length + trashedCharacters.length;
   if (!open) return null;
@@ -982,6 +958,22 @@ function MobileDrawer({ open, onClose, activeView, setActiveView, activeChapters
               <div className="nav-item-actions"><div className="nav-item-btn" onClick={e => { e.stopPropagation(); onDeleteCharacter(ch.id); onClose(); }}><TrashIcon /></div></div>
             </div>
           ))}
+          <div className="sep" />
+          <div className="section-header" onClick={() => setDetailsOpen(v => !v)}>
+            <div className="section-header-left">{detailsOpen ? <ChevronDown /> : <ChevronRight />}<span className="section-title">Details</span></div>
+          </div>
+          {detailsOpen && (
+            <>
+              <div className={`nav-item ${activeView?.type === "timeline" ? "active" : ""}`} onClick={() => { setActiveView({ type: "timeline" }); onClose(); }}>
+                <div className="nav-item-dot" />
+                <div className="nav-item-name">Timeline</div>
+              </div>
+              <div className={`nav-item ${activeView?.type === "statistics" ? "active" : ""}`} onClick={() => { setActiveView({ type: "statistics" }); onClose(); }}>
+                <div className="nav-item-dot" />
+                <div className="nav-item-name">Statistics</div>
+              </div>
+            </>
+          )}
           <div className="sep" />
           <div className="trash-dock">
             <div className="trash-dock-toggle" onClick={() => setTrashOpen(v => !v)}>
@@ -1342,20 +1334,29 @@ export default function App({ manuscriptId }) {
             <div className="sep" />
 
             <div className="section-header" onClick={() => setTimelineOpen((v) => !v)}>
-              <div className="section-header-left">{timelineOpen ? <ChevronDown /> : <ChevronRight />}<span className="section-title">Timeline</span></div>
+              <div className="section-header-left">{timelineOpen ? <ChevronDown /> : <ChevronRight />}<span className="section-title">Details</span></div>
             </div>
 
             {timelineOpen && (
-              <div
-                className={`nav-item ${activeView?.type === "timeline" ? "active" : ""}`}
-                onClick={() => setActiveView({ type: "timeline" })}
-              >
-                <div className="nav-item-dot" style={{ background: activeView?.type === "timeline" ? "var(--blue-core)" : "var(--border-bright)" }} />
-                <div className="nav-item-name">Story Timeline</div>
-                <div className="nav-item-actions" style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--text-dim)" }}>
-                  {activeChapters.length}ch
+              <>
+                <div
+                  className={`nav-item ${activeView?.type === "timeline" ? "active" : ""}`}
+                  onClick={() => setActiveView({ type: "timeline" })}
+                >
+                  <div className="nav-item-dot" style={{ background: activeView?.type === "timeline" ? "var(--blue-core)" : "var(--border-bright)" }} />
+                  <div className="nav-item-name">Timeline</div>
+                  <div className="nav-item-actions" style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--text-dim)" }}>
+                    {activeChapters.length}ch
+                  </div>
                 </div>
-              </div>
+                <div
+                  className={`nav-item ${activeView?.type === "statistics" ? "active" : ""}`}
+                  onClick={() => setActiveView({ type: "statistics" })}
+                >
+                  <div className="nav-item-dot" style={{ background: activeView?.type === "statistics" ? "var(--blue-core)" : "var(--border-bright)" }} />
+                  <div className="nav-item-name">Statistics</div>
+                </div>
+              </>
             )}
           </div>
 
@@ -1371,7 +1372,7 @@ export default function App({ manuscriptId }) {
         <main className="main">
           <div className="topbar">
             <div className="topbar-left">
-              <span className="topbar-breadcrumb">{activeView?.type === "chapter" ? "MANUSCRIPT //" : activeView?.type === "character" ? "CHARACTERS //" : "TIMELINE //"}</span>
+              <span className="topbar-breadcrumb">{activeView?.type === "chapter" ? "MANUSCRIPT //" : activeView?.type === "character" ? "CHARACTERS //" : activeView?.type === "statistics" ? "STATISTICS //" : "TIMELINE //"}</span>
               {activeView?.type === "chapter" && activeChapter && (
                 <input className="topbar-title-input" value={activeChapter.title} onChange={(e) => updateChapterTitle(activeChapter.id, e.target.value)} placeholder="Chapter title..." />
               )}
@@ -1413,6 +1414,20 @@ export default function App({ manuscriptId }) {
               onTlChange={handleTlChange}
               onReorder={handleTlReorder}
             />
+          )}
+
+          {!loading && activeView?.type === "statistics" && (
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+              <div className="tl-panel" style={{ paddingBottom: 0, gap: 0 }}>
+                <div className="tl-header">
+                  <div>
+                    <div className="tl-title">Statistics</div>
+                    <div className="tl-subtitle">{activeChapters.length} {activeChapters.length === 1 ? "CHAPTER" : "CHAPTERS"}</div>
+                  </div>
+                </div>
+              </div>
+              <StatisticsView chapters={activeChapters} />
+            </div>
           )}
 
           {!loading && activeView?.type === "character" && activeCharacter && (
