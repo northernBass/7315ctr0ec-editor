@@ -49,6 +49,5 @@ export default function LoginPage() {
           {error && <div className="login-error">⨯ Access denied</div>}
         </div>
       </div>
-    </div>
   );
 }

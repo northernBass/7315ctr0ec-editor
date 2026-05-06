@@ -387,6 +387,16 @@ function TimelineCard({ chapter, index, tlData, onTlChange, onDragStart, onDragO
 // ─── STATISTICS VIEW ─────────────────────────────────────────────────────────
 function StatisticsView({ chapters }) {
   const [tooltip, setTooltip] = useState(null);
+  const [svgW, setSvgW] = useState(600);
+  const wrapRef = useRef(null);
+
+  useEffect(() => {
+    if (!wrapRef.current) return;
+    setSvgW(wrapRef.current.offsetWidth);
+    const ro = new ResizeObserver(([entry]) => setSvgW(entry.contentRect.width));
+    ro.observe(wrapRef.current);
+    return () => ro.disconnect();
+  }, []);
 
   function wordCount(html) {
     if (!html) return 0;
@@ -406,15 +416,13 @@ function StatisticsView({ chapters }) {
   const total = data.reduce((s, d) => s + d.wc, 0);
   const avg = data.length > 0 ? Math.round(total / data.length) : 0;
   const longest = data.reduce((a, b) => (b.wc > a.wc ? b : a), data[0] || { wc: 0, title: "—" });
-  const shortest = data.filter(d => d.wc > 0).reduce((a, b) => (b.wc < a.wc ? b : a), data.find(d => d.wc > 0) || { wc: 0, title: "—" });
 
   const maxWc = Math.max(...data.map(d => d.wc), 1);
 
-  // Chart dimensions
   const chartH = 200;
-  const barGap = 4;
-  const minBarW = 12;
+  const barGap = 6;
   const n = data.length;
+  const barW = n > 0 ? Math.max((svgW - (n + 1) * barGap) / n, 4) : 20;
 
   return (
     <div className="stats-panel">
@@ -441,33 +449,30 @@ function StatisticsView({ chapters }) {
 
       <div>
         <div className="stats-section-title">Word count by chapter</div>
-        <div className="stats-chart-wrap">
+        <div className="stats-chart-wrap" ref={wrapRef}>
           <svg
             className="stats-chart-svg"
-            viewBox={`0 0 ${Math.max(n * (minBarW + barGap), 300)} ${chartH + 32}`}
-            preserveAspectRatio="none"
-            style={{ height: 240 }}
+            viewBox={`0 0 ${svgW} ${chartH + 32}`}
+            style={{ height: 240, display: "block" }}
             onMouseLeave={() => setTooltip(null)}
           >
             {data.map((d, i) => {
-              const barW = minBarW;
-              const x = i * (barW + barGap);
+              const x = barGap + i * (barW + barGap);
+              const cx = x + barW / 2;
               const barH = d.wc === 0 ? 2 : Math.max((d.wc / maxWc) * chartH, 4);
               const y = chartH - barH;
-              const cx = x + barW / 2;
               return (
                 <g key={d.id}>
                   <rect
                     className="stats-bar"
                     x={x} y={y} width={barW} height={barH}
                     rx={2}
-                    onMouseEnter={(e) => setTooltip({ i, d, cx, y })}
+                    onMouseEnter={() => setTooltip({ i, d, cx, y })}
                   />
-                  {/* x-axis label */}
                   <text
                     x={cx} y={chartH + 14}
                     textAnchor="middle"
-                    style={{ fontFamily: "var(--font-mono)", fontSize: 7, fill: "var(--text-dim)" }}
+                    style={{ fontFamily: "var(--font-mono)", fontSize: 9, fill: "var(--text-dim)" }}
                   >
                     {i + 1}
                   </text>
@@ -475,39 +480,37 @@ function StatisticsView({ chapters }) {
               );
             })}
 
-            {/* avg line */}
             {avg > 0 && (
               <line
                 x1={0} y1={chartH - (avg / maxWc) * chartH}
-                x2={n * (minBarW + barGap)} y2={chartH - (avg / maxWc) * chartH}
+                x2={svgW} y2={chartH - (avg / maxWc) * chartH}
                 stroke="var(--amber)" strokeWidth={1} strokeDasharray="3 3" opacity={0.5}
               />
             )}
 
-            {/* tooltip */}
             {tooltip && (() => {
               const { i, d, cx, y } = tooltip;
-              const tw = 140; const th = 44; const pad = 6;
-              const tx = Math.min(cx - tw / 2, n * (minBarW + barGap) - tw);
+              const tw = 160; const th = 44; const pad = 8;
+              const tx = Math.min(Math.max(cx - tw / 2, 0), svgW - tw);
               const ty = Math.max(y - th - 8, 0);
               return (
                 <g className="stats-tooltip">
                   <rect x={tx} y={ty} width={tw} height={th} rx={3}
                     fill="var(--bg-panel)" stroke="var(--border-bright)" strokeWidth={1} />
-                  <text x={tx + pad} y={ty + 14}
-                    style={{ fontFamily: "var(--font-mono)", fontSize: 8, fill: "var(--blue-core)" }}>
+                  <text x={tx + pad} y={ty + 15}
+                    style={{ fontFamily: "var(--font-mono)", fontSize: 10, fill: "var(--blue-core)" }}>
                     CH.{String(i + 1).padStart(2, "0")} · {d.wc.toLocaleString()} words
                   </text>
-                  <text x={tx + pad} y={ty + 30}
-                    style={{ fontFamily: "var(--font-mono)", fontSize: 8, fill: "var(--text-secondary)" }}>
-                    {d.title.length > 18 ? d.title.slice(0, 17) + "…" : d.title}
+                  <text x={tx + pad} y={ty + 32}
+                    style={{ fontFamily: "var(--font-mono)", fontSize: 10, fill: "var(--text-secondary)" }}>
+                    {d.title.length > 20 ? d.title.slice(0, 19) + "…" : d.title}
                   </text>
                 </g>
               );
             })()}
           </svg>
           {avg > 0 && (
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: 8, color: "var(--amber)", opacity: 0.7, marginTop: 4, letterSpacing: "0.1em" }}>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--amber)", opacity: 0.7, marginTop: 4, letterSpacing: "0.1em" }}>
               — avg {avg.toLocaleString()} words
             </div>
           )}
