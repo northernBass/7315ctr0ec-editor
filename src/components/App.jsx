@@ -3,7 +3,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, PageBreak } from "docx";
-import { supabase } from "@/lib/supabase";
+import { api } from "@/lib/api";
 import { useRouter } from "next/navigation";
 
 const DAILY_GOAL = 1000;
@@ -750,10 +750,10 @@ export default function App({ manuscriptId }) {
   useEffect(() => {
     async function load() {
       const [{ data: chs }, { data: chars }, { data: wc }, { data: tl }] = await Promise.all([
-        supabase.from("chapters").select("*").eq("manuscript_id", manuscriptId).order("position"),
-        supabase.from("characters").select("*").eq("manuscript_id", manuscriptId).order("created_at"),
-        supabase.from("word_count_log").select("*").eq("manuscript_id", manuscriptId).order("date").limit(30),
-        supabase.from("chapter_timeline").select("*").eq("manuscript_id", manuscriptId),
+        api.chapters.list(manuscriptId),
+        api.characters.list(manuscriptId),
+        api.wordCountLog.list(manuscriptId),
+        api.chapterTimeline.list(manuscriptId),
       ]);
 
       setChapters(chs || []);
@@ -810,7 +810,7 @@ export default function App({ manuscriptId }) {
 
   const persistWordCount = useDebounce(async (todayCount) => {
     const _d = new Date(); const today = `${_d.getFullYear()}-${String(_d.getMonth()+1).padStart(2,"0")}-${String(_d.getDate()).padStart(2,"0")}`;
-    await supabase.from("word_count_log").upsert({ date: today, count: todayCount, manuscript_id: manuscriptId }, { onConflict: "date,manuscript_id" });
+    await api.wordCountLog.upsert({ date: today, count: todayCount, manuscript_id: manuscriptId });
     setWordCountData((prev) => prev.map((d) => d.date === today ? { ...d, count: todayCount } : d));
   }, 3000);
 
@@ -839,7 +839,7 @@ export default function App({ manuscriptId }) {
 
   // ── CHAPTERS ──────────────────────────────────────────────────────────────
   const saveChapterContent = useDebounce(async (id, html) => {
-    await supabase.from("chapters").update({ content: html }).eq("id", id);
+    await api.chapters.update(id, { content: html });
     triggerSave();
   }, 1000);
 
@@ -850,7 +850,7 @@ export default function App({ manuscriptId }) {
   }
 
   const saveChapterTitle = useDebounce(async (id, title) => {
-    await supabase.from("chapters").update({ title }).eq("id", id);
+    await api.chapters.update(id, { title });
     triggerSave();
   }, 800);
 
@@ -861,7 +861,7 @@ export default function App({ manuscriptId }) {
 
   async function addChapter() {
     const position = activeChapters.length;
-    const { data, error } = await supabase.from("chapters").insert({ title: `Chapter ${position + 1}`, content: "<p></p>", position, manuscript_id: manuscriptId }).select().single();
+    const { data, error } = await api.chapters.create({ title: `Chapter ${position + 1}`, content: "<p></p>", position, manuscript_id: manuscriptId });
     if (error || !data) return;
     setChapters((prev) => [...prev, data]);
     setActiveView({ type: "chapter", id: data.id });
@@ -869,7 +869,7 @@ export default function App({ manuscriptId }) {
 
   async function deleteChapter(id) {
     const deleted_at = new Date().toISOString();
-    await supabase.from("chapters").update({ deleted_at }).eq("id", id);
+    await api.chapters.update(id, { deleted_at });
     setChapters((prev) => prev.map((c) => c.id === id ? { ...c, deleted_at } : c));
     if (activeView?.id === id) {
       const remaining = activeChapters.filter((c) => c.id !== id);
@@ -878,13 +878,13 @@ export default function App({ manuscriptId }) {
   }
 
   async function restoreChapter(id) {
-    await supabase.from("chapters").update({ deleted_at: null }).eq("id", id);
+    await api.chapters.update(id, { deleted_at: null });
     setChapters((prev) => prev.map((c) => c.id === id ? { ...c, deleted_at: null } : c));
     setActiveView({ type: "chapter", id });
   }
 
   async function permDeleteChapter(id) {
-    await supabase.from("chapters").delete().eq("id", id);
+    await api.chapters.delete(id);
     setChapters((prev) => prev.filter((c) => c.id !== id));
   }
 
@@ -906,12 +906,12 @@ export default function App({ manuscriptId }) {
     });
     setDragId(null); setDragOverId(null);
     // Persist positions
-    await Promise.all(reordered.map((c, i) => supabase.from("chapters").update({ position: i }).eq("id", c.id)));
+    await Promise.all(reordered.map((c, i) => api.chapters.update(c.id, { position: i })));
   }
 
   // ── CHARACTERS ────────────────────────────────────────────────────────────
   async function addCharacter() {
-    const { data, error } = await supabase.from("characters").insert({ name: "New Character", manuscript_id: manuscriptId }).select().single();
+    const { data, error } = await api.characters.create({ name: "New Character", manuscript_id: manuscriptId });
     if (error || !data) return;
     setCharacters((prev) => [...prev, data]);
     setActiveView({ type: "character", id: data.id });
@@ -919,24 +919,24 @@ export default function App({ manuscriptId }) {
 
   async function deleteCharacter(id) {
     const deleted_at = new Date().toISOString();
-    await supabase.from("characters").update({ deleted_at }).eq("id", id);
+    await api.characters.update(id, { deleted_at });
     setCharacters((prev) => prev.map((c) => c.id === id ? { ...c, deleted_at } : c));
     if (activeView?.id === id) setActiveView(activeChapters.length > 0 ? { type: "chapter", id: activeChapters[0].id } : null);
   }
 
   async function restoreCharacter(id) {
-    await supabase.from("characters").update({ deleted_at: null }).eq("id", id);
+    await api.characters.update(id, { deleted_at: null });
     setCharacters((prev) => prev.map((c) => c.id === id ? { ...c, deleted_at: null } : c));
     setActiveView({ type: "character", id });
   }
 
   async function permDeleteCharacter(id) {
-    await supabase.from("characters").delete().eq("id", id);
+    await api.characters.delete(id);
     setCharacters((prev) => prev.filter((c) => c.id !== id));
   }
 
   const saveCharacter = useDebounce(async (id, fields) => {
-    await supabase.from("characters").update(fields).eq("id", id);
+    await api.characters.update(id, fields);
     triggerSave();
   }, 800);
 
@@ -948,10 +948,7 @@ export default function App({ manuscriptId }) {
 
   // ── TIMELINE ──────────────────────────────────────────────────────────────
   const saveTlDebounced = useDebounce(async (chapterId, patch) => {
-    await supabase.from("chapter_timeline").upsert(
-      { chapter_id: chapterId, manuscript_id: manuscriptId, ...patch },
-      { onConflict: "chapter_id" }
-    );
+    await api.chapterTimeline.upsert({ chapter_id: chapterId, manuscript_id: manuscriptId, ...patch });
   }, 1500);
 
   function handleTlChange(chapterId, field, value) {
@@ -974,7 +971,7 @@ export default function App({ manuscriptId }) {
     const trashed = chapters.filter((c) => c.deleted_at);
     setChapters([...reordered, ...trashed]);
     reordered.forEach((ch, i) => {
-      supabase.from("chapters").update({ position: i }).eq("id", ch.id);
+      api.chapters.update(ch.id, { position: i });
     });
   }
 

@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { api } from "@/lib/api";
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, PageBreak } from "docx";
 
 const STATUSES = ["Draft", "Revising", "Complete", "On Hold"];
@@ -222,14 +223,14 @@ export default function Dashboard() {
   }, []);
 
   async function loadManuscripts() {
-    const { data: mss } = await supabase.from("manuscripts").select("*").order("updated_at", { ascending: false });
+    const { data: mss } = await api.manuscripts.list();
     setManuscripts(mss || []);
 
     // Load word counts for all manuscripts
     if (mss && mss.length > 0) {
       const counts: Record<number, number> = {};
       await Promise.all(mss.map(async (ms) => {
-        const { data: chapters } = await supabase.from("chapters").select("content").eq("manuscript_id", ms.id).is("deleted_at", null);
+        const { data: chapters } = await api.chapters.list(ms.id, { activeOnly: true, select: "content" });
         counts[ms.id] = countWords(chapters || []);
       }));
       setWordCounts(counts);
@@ -238,7 +239,7 @@ export default function Dashboard() {
   }
 
   async function handleCreate(fields) {
-    const { data, error } = await supabase.from("manuscripts").insert(fields).select().single();
+    const { data, error } = await api.manuscripts.create(fields);
     if (error || !data) return;
     setManuscripts((prev) => [data, ...prev]);
     setShowModal(false);
@@ -246,7 +247,7 @@ export default function Dashboard() {
   }
 
   async function handleEdit(fields) {
-    const { data, error } = await supabase.from("manuscripts").update(fields).eq("id", editingMs.id).select().single();
+    const { data, error } = await api.manuscripts.update(editingMs.id, fields);
     if (error || !data) return;
     setManuscripts((prev) => prev.map((m) => m.id === data.id ? data : m));
     setEditingMs(null);
@@ -254,22 +255,22 @@ export default function Dashboard() {
 
   async function handleDelete(id) {
     const deleted_at = new Date().toISOString();
-    await supabase.from("manuscripts").update({ deleted_at }).eq("id", id);
+    await api.manuscripts.update(id, { deleted_at });
     setManuscripts((prev) => prev.map((m) => m.id === id ? { ...m, deleted_at } : m));
   }
 
   async function handleRestore(id) {
-    await supabase.from("manuscripts").update({ deleted_at: null }).eq("id", id);
+    await api.manuscripts.update(id, { deleted_at: null });
     setManuscripts((prev) => prev.map((m) => m.id === id ? { ...m, deleted_at: null } : m));
   }
 
   async function handlePermDelete(id) {
-    await supabase.from("manuscripts").delete().eq("id", id);
+    await api.manuscripts.delete(id);
     setManuscripts((prev) => prev.filter((m) => m.id !== id));
   }
 
   async function handleExport(ms, format) {
-    const { data: chapters } = await supabase.from("chapters").select("*").eq("manuscript_id", ms.id).is("deleted_at", null).order("position");
+    const { data: chapters } = await api.chapters.list(ms.id, { activeOnly: true });
     if (!chapters) return;
     if (format === "md") await doExportMd(ms, chapters);
     else await doExportDocx(ms, chapters);
