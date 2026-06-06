@@ -38,3 +38,5 @@ Push to a GitHub repo, connect to Vercel, done. No env vars needed yet (auth com
 - `word_count_log` table: date, count
 - Supabase Storage bucket for character photos
 - Env var password auth via middleware
+
+// bullshit change to trigger redeploy
