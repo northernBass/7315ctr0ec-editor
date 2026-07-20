@@ -17,6 +17,8 @@ export const api = {
   manuscripts: {
     list: () =>
       apiFetch("/api/manuscripts"),
+    get: (id: number) =>
+      apiFetch(`/api/manuscripts/${id}`),
     create: (fields: Record<string, unknown>) =>
       apiFetch("/api/manuscripts", { method: "POST", body: JSON.stringify(fields) }),
     update: (id: number, fields: Record<string, unknown>) =>

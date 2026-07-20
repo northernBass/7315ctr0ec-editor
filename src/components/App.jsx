@@ -713,6 +713,7 @@ function MobileDrawer({ open, onClose, activeView, setActiveView, activeChapters
 export default function App({ manuscriptId }) {
   const [chapters, setChapters] = useState([]);
   const [characters, setCharacters] = useState([]);
+  const [manuscriptTitle, setManuscriptTitle] = useState("");
   const [wordCountData, setWordCountData] = useState([]);
   const [activeView, setActiveView] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -749,13 +750,15 @@ export default function App({ manuscriptId }) {
   // ── LOAD ──────────────────────────────────────────────────────────────────
   useEffect(() => {
     async function load() {
-      const [{ data: chs }, { data: chars }, { data: wc }, { data: tl }] = await Promise.all([
+      const [{ data: ms }, { data: chs }, { data: chars }, { data: wc }, { data: tl }] = await Promise.all([
+        api.manuscripts.get(manuscriptId),
         api.chapters.list(manuscriptId),
         api.characters.list(manuscriptId),
         api.wordCountLog.list(manuscriptId),
         api.chapterTimeline.list(manuscriptId),
       ]);
 
+      setManuscriptTitle(ms?.title || "");
       setChapters(chs || []);
       setCharacters(chars || []);
 
@@ -804,6 +807,13 @@ export default function App({ manuscriptId }) {
     }
     load();
   }, []);
+
+  // ── DOCUMENT TITLE ──────────────────────────────────────────────────────────
+  useEffect(() => {
+    const base = "7315-CTR0 EC";
+    document.title = manuscriptTitle ? `${manuscriptTitle} - ${base}` : base;
+    return () => { document.title = base; };
+  }, [manuscriptTitle]);
 
   // ── WORD COUNT: live display + debounced persist ─────────────────────────
   const sessionDateRef = useRef(null); // tracks which date the current session started on
