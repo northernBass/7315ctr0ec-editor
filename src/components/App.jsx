@@ -8,6 +8,13 @@ import { useRouter } from "next/navigation";
 
 const DAILY_GOAL = 1000;
 
+// Save-status → color. Red means your work is NOT saved.
+function saveStatusColor(status) {
+  if (status === "SYNCED") return "var(--green-ok)";
+  if (status === "SAVE FAILED" || status === "SESSION EXPIRED") return "var(--red-alert)";
+  return "var(--amber)"; // SAVING... / RETRYING...
+}
+
 // ─── ICONS ───────────────────────────────────────────────────────────────────
 const ChevronRight = ({ size = 12 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6" /></svg>;
 const ChevronDown = ({ size = 12 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9" /></svg>;
@@ -702,7 +709,7 @@ function MobileDrawer({ open, onClose, activeView, setActiveView, activeChapters
         </div>
         <div className="mob-drawer-footer">
           <button className="mob-back-btn" onClick={() => router.push("/dashboard")}><ArrowLeftIcon /> Back to Dashboard</button>
-          <div className="mob-status"><span style={{ color: saveStatus === "SYNCED" ? "var(--green-ok)" : "var(--amber)" }}>■</span> {saveStatus}</div>
+          <div className="mob-status"><span style={{ color: saveStatusColor(saveStatus) }}>■</span> {saveStatus}</div>
         </div>
       </div>
     </>
@@ -728,10 +735,14 @@ export default function App({ manuscriptId }) {
   const [todayWords, setTodayWords] = useState(0);
   const [tlData, setTlData] = useState({});
   const [timelineOpen, setTimelineOpen] = useState(true);
-  const saveTimerRef = useRef(null);
   const router = useRouter();
   const loadSnapshotRef = useRef(null);
   const todayBaseRef = useRef(0);
+  // Pending writes: key -> thunk returning the api promise. The map always holds
+  // the LATEST payload per key, so retries persist current content, not stale.
+  const pendingSaves = useRef(new Map());
+  const inFlight = useRef(new Set());
+  const flushAllRef = useRef(() => {});
 
   const activeChapters = chapters.filter((c) => !c.deleted_at);
   const trashedChapters = chapters.filter((c) => c.deleted_at);
@@ -815,6 +826,31 @@ export default function App({ manuscriptId }) {
     return () => { document.title = base; };
   }, [manuscriptTitle]);
 
+  // ── FLUSH PENDING SAVES ON EXIT ─────────────────────────────────────────────
+  // A short debounce means the last edit can still be in-flight when you leave.
+  // Flush on tab-hide, on refocus (e.g. after re-login in another tab), on
+  // unmount (Back to Dashboard), and warn before an unload with unsaved work.
+  useEffect(() => {
+    const onBeforeUnload = (e) => {
+      if (pendingSaves.current.size > 0) {
+        flushAllRef.current();     // best-effort; may not finish before unload
+        e.preventDefault();
+        e.returnValue = "";        // triggers the browser's "unsaved changes" prompt
+      }
+    };
+    const onVisibility = () => { if (document.visibilityState === "hidden") flushAllRef.current(); };
+    const onFocus = () => { if (pendingSaves.current.size > 0) flushAllRef.current(); };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("focus", onFocus);
+    return () => {
+      window.removeEventListener("beforeunload", onBeforeUnload);
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("focus", onFocus);
+      flushAllRef.current();       // flush when leaving the editor
+    };
+  }, []);
+
   // ── WORD COUNT: live display + debounced persist ─────────────────────────
   const sessionDateRef = useRef(null); // tracks which date the current session started on
 
@@ -840,33 +876,57 @@ export default function App({ manuscriptId }) {
     persistWordCount(todayCount);
   }, [totalWords]);
 
-  // ── SAVE STATUS ───────────────────────────────────────────────────────────
-  function triggerSave() {
+  // ── SAVE ENGINE ───────────────────────────────────────────────────────────
+  // Persist one pending key, verifying the server actually accepted it and
+  // retrying on failure. Reads the freshest thunk each attempt, so a retry
+  // always saves the latest edit — never stale content.
+  async function flushKey(key) {
+    if (inFlight.current.has(key)) return;
+    inFlight.current.add(key);
+    try {
+      for (let attempt = 0; attempt < 5; attempt++) {
+        const thunk = pendingSaves.current.get(key);
+        if (!thunk) return; // superseded and already saved
+        const { error, status } = await thunk();
+        if (!error) {
+          // Only clear if no newer edit replaced this thunk mid-flight.
+          if (pendingSaves.current.get(key) === thunk) pendingSaves.current.delete(key);
+          if (pendingSaves.current.size === 0) setSaveStatus("SYNCED");
+          return;
+        }
+        if (status === 401) { setSaveStatus("SESSION EXPIRED"); return; }
+        setSaveStatus("RETRYING...");
+        await new Promise((r) => setTimeout(r, 800 * (attempt + 1)));
+      }
+      setSaveStatus("SAVE FAILED");
+    } finally {
+      inFlight.current.delete(key);
+    }
+  }
+
+  async function flushAll() {
+    const keys = Array.from(pendingSaves.current.keys());
+    await Promise.all(keys.map(flushKey));
+  }
+  flushAllRef.current = flushAll;
+
+  // Queue a write under a key and debounce a flush of everything pending.
+  const scheduleFlush = useDebounce(() => { flushAllRef.current(); }, 1000);
+  function queueSave(key, thunk) {
+    pendingSaves.current.set(key, thunk);
     setSaveStatus("SAVING...");
-    clearTimeout(saveTimerRef.current);
-    saveTimerRef.current = setTimeout(() => setSaveStatus("SYNCED"), 1200);
+    scheduleFlush();
   }
 
   // ── CHAPTERS ──────────────────────────────────────────────────────────────
-  const saveChapterContent = useDebounce(async (id, html) => {
-    await api.chapters.update(id, { content: html });
-    triggerSave();
-  }, 1000);
-
   function updateChapterContent(id, html) {
     setChapters((prev) => prev.map((c) => c.id === id ? { ...c, content: html } : c));
-    setSaveStatus("SAVING...");
-    saveChapterContent(id, html);
+    queueSave(`content:${id}`, () => api.chapters.update(id, { content: html }));
   }
-
-  const saveChapterTitle = useDebounce(async (id, title) => {
-    await api.chapters.update(id, { title });
-    triggerSave();
-  }, 800);
 
   function updateChapterTitle(id, title) {
     setChapters((prev) => prev.map((c) => c.id === id ? { ...c, title } : c));
-    saveChapterTitle(id, title);
+    queueSave(`ch-title:${id}`, () => api.chapters.update(id, { title }));
   }
 
   async function addChapter() {
@@ -945,27 +1005,18 @@ export default function App({ manuscriptId }) {
     setCharacters((prev) => prev.filter((c) => c.id !== id));
   }
 
-  const saveCharacter = useDebounce(async (id, fields) => {
-    await api.characters.update(id, fields);
-    triggerSave();
-  }, 800);
-
   function updateCharacter(id, field, value) {
     setCharacters((prev) => prev.map((c) => c.id === id ? { ...c, [field]: value } : c));
-    setSaveStatus("SAVING...");
-    saveCharacter(id, { [field]: value });
+    queueSave(`char:${id}:${field}`, () => api.characters.update(id, { [field]: value }));
   }
 
   // ── TIMELINE ──────────────────────────────────────────────────────────────
-  const saveTlDebounced = useDebounce(async (chapterId, patch) => {
-    await api.chapterTimeline.upsert({ chapter_id: chapterId, manuscript_id: manuscriptId, ...patch });
-  }, 1500);
-
   function handleTlChange(chapterId, field, value) {
     setTlData((prev) => {
       const existing = prev[chapterId] || { summary: "", notes: "", tags: [] };
       const updated = { ...existing, [field]: value };
-      saveTlDebounced(chapterId, { [field]: value });
+      queueSave(`tl:${chapterId}:${field}`, () =>
+        api.chapterTimeline.upsert({ chapter_id: chapterId, manuscript_id: manuscriptId, [field]: value }));
       return { ...prev, [chapterId]: updated };
     });
   }
@@ -1085,7 +1136,18 @@ export default function App({ manuscriptId }) {
               {activeView?.type === "chapter" && <span className="topbar-wc"><span>{currentChapterWC.toLocaleString()}</span> words</span>}
               <button className="export-btn" onClick={() => exportMarkdown(activeChapters)}><DownloadIcon /> .md</button>
               <button className="export-btn" onClick={() => exportDocx(activeChapters)}><DownloadIcon /> .docx</button>
-              <div className="status-chip"><div className="status-dot" />{saveStatus}</div>
+              <div
+                className="status-chip"
+                style={{ color: saveStatusColor(saveStatus), cursor: (saveStatus === "SAVE FAILED" || saveStatus === "SESSION EXPIRED") ? "pointer" : "default" }}
+                title={saveStatus === "SESSION EXPIRED" ? "Your login expired — click to log in again, then your work will save" : saveStatus === "SAVE FAILED" ? "Click to retry saving" : ""}
+                onClick={() => {
+                  if (saveStatus === "SESSION EXPIRED") window.open("/login", "_blank");
+                  if (saveStatus === "SAVE FAILED" || saveStatus === "SESSION EXPIRED") flushAllRef.current();
+                }}
+              >
+                <div className="status-dot" style={{ background: saveStatusColor(saveStatus), boxShadow: `0 0 6px ${saveStatusColor(saveStatus)}` }} />
+                {saveStatus}
+              </div>
               <button className="mob-menu-btn" onClick={() => setMobMenuOpen(true)}><HamburgerIcon /></button>
             </div>
           </div>

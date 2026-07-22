@@ -9,10 +9,18 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
+  const isApi = pathname.startsWith("/api");
+  // API calls get a real 401 (JSON) so the client can detect an expired session;
+  // page navigations get redirected to the login screen.
+  const unauthorized = () =>
+    isApi
+      ? NextResponse.json({ error: "Session expired" }, { status: 401 })
+      : NextResponse.redirect(new URL("/login", req.url));
+
   const token = req.cookies.get("auth")?.value;
 
   if (!token) {
-    return NextResponse.redirect(new URL("/login", req.url));
+    return unauthorized();
   }
 
   try {
@@ -20,7 +28,7 @@ export async function middleware(req: NextRequest) {
     await jwtVerify(token, secret);
     return NextResponse.next();
   } catch {
-    return NextResponse.redirect(new URL("/login", req.url));
+    return unauthorized();
   }
 }
 

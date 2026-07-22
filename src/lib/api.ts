@@ -1,15 +1,17 @@
-async function apiFetch(path: string, options?: RequestInit): Promise<{ data: any; error: string | null }> {
+async function apiFetch(path: string, options?: RequestInit): Promise<{ data: any; error: string | null; status: number }> {
   try {
     const isGet = !options?.method || options.method === "GET";
     const res = await fetch(path, {
       ...options,
       headers: isGet ? undefined : { "Content-Type": "application/json", ...(options?.headers || {}) },
     });
-    const json = await res.json();
-    if (!res.ok) return { data: null, error: json.error || "Request failed" };
-    return { data: json.data ?? null, error: null };
+    let json: any = null;
+    try { json = await res.json(); } catch { /* non-JSON body (e.g. an auth redirect page) */ }
+    if (res.status === 401) return { data: null, error: "Session expired", status: 401 };
+    if (!res.ok) return { data: null, error: json?.error || "Request failed", status: res.status };
+    return { data: json?.data ?? null, error: null, status: res.status };
   } catch {
-    return { data: null, error: "Network error" };
+    return { data: null, error: "Network error", status: 0 };
   }
 }
 
