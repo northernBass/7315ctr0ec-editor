@@ -2,7 +2,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import { Document, Packer, Paragraph, TextRun, HeadingLevel, PageBreak } from "docx";
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, PageBreak, AlignmentType } from "docx";
 import { api } from "@/lib/api";
 import { useRouter } from "next/navigation";
 
@@ -64,6 +64,7 @@ function htmlToMarkdown(html) {
     .replace(/<code>(.*?)<\/code>/gi, "`$1`")
     .replace(/<blockquote>(.*?)<\/blockquote>/gis, (_, inner) => inner.trim().split("\n").map(l => `> ${l}`).join("\n") + "\n\n")
     .replace(/<p>(.*?)<\/p>/gis, "$1\n\n")
+    .replace(/<hr[^>]*>/gi, "***\n\n")
     .replace(/<br\s*\/?>/gi, "\n")
     .replace(/<[^>]+>/g, "")
     .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&nbsp;/g, " ")
@@ -111,6 +112,7 @@ function htmlToDocxParagraphs(html) {
     else if (tag === "h2") paragraphs.push(new Paragraph({ text: node.textContent, heading: HeadingLevel.HEADING_2 }));
     else if (tag === "h3") paragraphs.push(new Paragraph({ text: node.textContent, heading: HeadingLevel.HEADING_3 }));
     else if (tag === "blockquote") paragraphs.push(new Paragraph({ children: [new TextRun({ text: node.textContent, italics: true })], indent: { left: 720 } }));
+    else if (tag === "hr") paragraphs.push(new Paragraph({ text: "***", alignment: AlignmentType.CENTER }));
     else if (tag === "p") {
       const runs = nodeToRuns(node);
       paragraphs.push(runs.length > 0 ? new Paragraph({ children: runs }) : new Paragraph({}));
