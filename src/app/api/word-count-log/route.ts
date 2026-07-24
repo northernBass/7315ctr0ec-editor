@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
     .from("word_count_log")
     .select("*")
     .eq("manuscript_id", manuscriptId)
-    .order("date")
+    .order("date", { ascending: false })
     .limit(30);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
