@@ -745,6 +745,7 @@ export default function App({ manuscriptId }) {
   const pendingSaves = useRef(new Map());
   const inFlight = useRef(new Set());
   const flushAllRef = useRef(() => {});
+  const scheduleFlushRef = useRef(() => {});
 
   const activeChapters = chapters.filter((c) => !c.deleted_at);
   const trashedChapters = chapters.filter((c) => c.deleted_at);
@@ -882,27 +883,44 @@ export default function App({ manuscriptId }) {
   // Persist one pending key, verifying the server actually accepted it and
   // retrying on failure. Reads the freshest thunk each attempt, so a retry
   // always saves the latest edit — never stale content.
+  // Set SYNCED only when nothing is pending and nothing is in flight, so the
+  // indicator reflects reality instead of one save's outcome — it can never get
+  // orphaned on "SAVING..." after the work is actually done.
+  function reconcileStatus() {
+    // Empty queue + nothing in flight ⇒ every edit is persisted ⇒ SYNCED,
+    // even if an earlier attempt had failed and a later retry recovered it.
+    if (pendingSaves.current.size === 0 && inFlight.current.size === 0) {
+      setSaveStatus("SYNCED");
+    }
+  }
+
   async function flushKey(key) {
-    if (inFlight.current.has(key)) return;
+    if (inFlight.current.has(key)) return; // an active run for this key will pick up newer edits
     inFlight.current.add(key);
+    let authFailed = false;
     try {
       for (let attempt = 0; attempt < 5; attempt++) {
         const thunk = pendingSaves.current.get(key);
-        if (!thunk) return; // superseded and already saved
+        if (!thunk) break; // saved and not superseded
         const { error, status } = await thunk();
         if (!error) {
-          // Only clear if no newer edit replaced this thunk mid-flight.
+          // Only clear if no newer edit replaced this thunk mid-flight; if one
+          // did, leave it pending — the reschedule below will save it.
           if (pendingSaves.current.get(key) === thunk) pendingSaves.current.delete(key);
-          if (pendingSaves.current.size === 0) setSaveStatus("SYNCED");
-          return;
+          break;
         }
-        if (status === 401) { setSaveStatus("SESSION EXPIRED"); return; }
+        if (status === 401) { authFailed = true; setSaveStatus("SESSION EXPIRED"); break; }
         setSaveStatus("RETRYING...");
+        if (attempt === 4) { setSaveStatus("SAVE FAILED"); break; }
         await new Promise((r) => setTimeout(r, 800 * (attempt + 1)));
       }
-      setSaveStatus("SAVE FAILED");
     } finally {
       inFlight.current.delete(key);
+      // If edits are still pending (a newer edit landed mid-flight, or a save
+      // failed, or a flush got swallowed by the in-flight guard), ensure another
+      // flush is coming — except after auth failure, which waits for re-login.
+      if (!authFailed && pendingSaves.current.size > 0) scheduleFlushRef.current();
+      reconcileStatus();
     }
   }
 
@@ -914,6 +932,7 @@ export default function App({ manuscriptId }) {
 
   // Queue a write under a key and debounce a flush of everything pending.
   const scheduleFlush = useDebounce(() => { flushAllRef.current(); }, 1000);
+  scheduleFlushRef.current = scheduleFlush;
   function queueSave(key, thunk) {
     pendingSaves.current.set(key, thunk);
     setSaveStatus("SAVING...");
