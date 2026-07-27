@@ -82,9 +82,9 @@ export async function POST(req: NextRequest) {
   await clearAttempts(ip);
 
   const secret = new TextEncoder().encode(process.env.JWT_SECRET!);
-  const token = await new SignJWT({ auth: true })
+  const token = await new SignJWT({ auth: true, v: process.env.TOKEN_VERSION || "1" })
     .setProtectedHeader({ alg: "HS256" })
-    .setExpirationTime("30d")
+    .setExpirationTime("7d")
     .sign(secret);
 
   const res = NextResponse.json({ ok: true });
@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
     httpOnly: true,
     secure: true,
     sameSite: "strict",
-    maxAge: 60 * 60 * 24 * 30, // 30 days
+    maxAge: 60 * 60 * 24 * 7, // 7 days
     path: "/",
   });
   return res;

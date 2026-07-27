@@ -279,6 +279,11 @@ export default function Dashboard() {
   const active = manuscripts.filter((m) => !m.deleted_at);
   const trashed = manuscripts.filter((m) => m.deleted_at);
 
+  async function handleLogout() {
+    await fetch("/api/auth/logout", { method: "POST" });
+    router.push("/login");
+  }
+
   return (
     <>
       <div className="dash-shell">
@@ -291,6 +296,13 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="dash-topbar-right">
+            <button
+              onClick={handleLogout}
+              title="Log out"
+              style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-dim)", background: "transparent", border: "1px solid rgba(120,140,170,0.25)", borderRadius: 4, padding: "6px 12px", marginRight: 10, cursor: "pointer" }}
+            >
+              Log out
+            </button>
             <button className="dash-new-btn" onClick={() => setShowModal(true)}><PlusIcon /> New Manuscript</button>
           </div>
         </div>

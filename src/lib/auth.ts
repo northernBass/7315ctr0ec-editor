@@ -9,7 +9,11 @@ export async function requireAuth(req: NextRequest): Promise<NextResponse | null
   if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   try {
     const secret = new TextEncoder().encode(process.env.JWT_SECRET!);
-    await jwtVerify(token, secret);
+    const { payload } = await jwtVerify(token, secret);
+    // Revocation lever: bump TOKEN_VERSION in the env to invalidate all sessions.
+    if (payload.v !== (process.env.TOKEN_VERSION || "1")) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     return null;
   } catch {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

@@ -25,7 +25,9 @@ export async function middleware(req: NextRequest) {
 
   try {
     const secret = new TextEncoder().encode(process.env.JWT_SECRET!);
-    await jwtVerify(token, secret);
+    const { payload } = await jwtVerify(token, secret);
+    // Revocation lever: bump TOKEN_VERSION in the env to invalidate all sessions.
+    if (payload.v !== (process.env.TOKEN_VERSION || "1")) return unauthorized();
     return NextResponse.next();
   } catch {
     return unauthorized();
